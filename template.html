@@ -2,301 +2,560 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Language Family Tree</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Language Tree</title>
 <style>
   :root {
-    --bg1: #1b1033;
-    --bg2: #0a0716;
-    --panel: rgba(255, 255, 255, 0.06);
-    --line: rgba(255, 255, 255, 0.14);
-    --text: #f3ecff;
-    --muted: #b9acd6;
-    --accent: #ff8fc7;
+    --pink: #ff8fc7;
+    --pale: #ffd6ec;
+    --deep: #ff5fa8;
+    --ink: #1c0d2e;
+    --text: #fff0f8;
+    --muted: #cfa6c0;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
   body {
     font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
     color: var(--text);
-    min-height: 100vh;
-    background: radial-gradient(ellipse at 20% 0%, var(--bg1) 0%, var(--bg2) 70%) fixed;
+    background: radial-gradient(ellipse at 50% 0%, #2d1344 0%, #140a24 55%, #07040f 100%);
   }
-  header { padding: 28px 24px 8px; text-align: center; }
-  header h1 {
-    font-size: clamp(1.5rem, 3.4vw, 2.3rem);
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    text-shadow: 0 0 18px rgba(255, 143, 199, 0.55);
-  }
-  header p { color: var(--muted); margin-top: 6px; font-size: 0.95rem; }
-  header nav { margin-top: 10px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-  .pill {
-    color: var(--text); text-decoration: none; font-size: 0.85rem;
-    border: 1px solid var(--line); border-radius: 999px; padding: 5px 14px;
-    background: var(--panel); cursor: pointer; font-family: inherit;
-  }
-  .pill:hover, .pill:focus-visible { border-color: var(--accent); box-shadow: 0 0 12px rgba(255, 143, 199, 0.45); outline: none; }
 
-  main {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 360px;
-    gap: 18px;
-    padding: 14px 20px 40px;
-    max-width: 1500px;
-    margin: 0 auto;
-    align-items: start;
-  }
-  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  /* ---------- timeline (behind the tree) ---------- */
+  #timeline { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+  .tick { position: absolute; left: 0; top: 0; width: 100%; will-change: transform; }
+  .tick .yr { position: absolute; left: 12px; top: -9px; font-size: 12px; letter-spacing: .06em; color: var(--pale); opacity: .8; }
+  .tick .rule { position: absolute; left: 60px; right: 0; top: 0; border-top: 1px dashed rgba(255, 143, 199, .17); }
 
-  .map-wrap {
-    border: 1px solid var(--line);
-    border-radius: 20px;
-    background: rgba(255, 255, 255, 0.025);
-    overflow-x: auto;
-  }
-  svg#map { display: block; width: 100%; min-width: 760px; height: auto; }
+  /* ---------- the tree ---------- */
+  #stage { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 1; touch-action: none; cursor: grab; }
+  #stage:active { cursor: grabbing; }
+  .node { cursor: pointer; }
+  .node .name { fill: #fff; font-size: 14px; font-weight: 700; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+  .node .core { fill: var(--ink); stroke: var(--pink); stroke-width: 2.5; transition: stroke-width .2s; }
+  .node .petal { fill: rgba(255, 143, 199, .25); stroke: var(--pink); stroke-width: 1.4; transition: fill .2s; }
+  .node:hover .core { stroke-width: 4; }
+  .node:hover .petal { fill: rgba(255, 143, 199, .42); }
+  .twinkle { animation: tw 3.2s ease-in-out infinite; animation-delay: var(--d, 0s); }
+  @keyframes tw { 0%, 100% { opacity: .2; } 50% { opacity: 1; } }
 
-  .region { stroke-width: 1; }
-  .region-label {
-    font-size: 14px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
-    text-anchor: middle; opacity: 0.9;
-  }
-  .edge { fill: none; stroke-width: 2.2; opacity: 0.55; transition: opacity .25s, stroke-width .25s; }
-  .edge.dim { opacity: 0.1; }
-  .edge.lit { opacity: 1; stroke-width: 3.6; }
+  .bubbles { opacity: 0; pointer-events: none; transition: opacity .35s; }
+  .bubbles.show { opacity: 1; pointer-events: auto; }
+  .bubble { cursor: pointer; }
+  .bubble circle { fill: var(--ink); stroke: var(--pink); stroke-width: 2; }
+  .bubble:hover circle { fill: #3a1a58; stroke-width: 3.5; }
+  .bubble .glyph { fill: #fff; font-size: 11px; font-weight: 700; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+  .bubble .lab { fill: var(--pale); font-size: 8.5px; text-anchor: middle; pointer-events: none; opacity: .9; }
 
-  .node { cursor: pointer; transition: opacity .25s; outline: none; }
-  .node circle { fill: #1a1230; stroke-width: 2.5; transition: stroke-width .25s; }
-  .node .name { fill: #fff; font-size: 13px; font-weight: 700; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
-  .node .year { fill: var(--muted); font-size: 12px; text-anchor: middle; pointer-events: none; }
-  .node:hover circle, .node:focus-visible circle { stroke-width: 4; }
-  .node.dim { opacity: 0.22; }
-  .node.selected circle { stroke-width: 4.5; }
-
-  aside {
-    border: 1px solid var(--line);
-    border-radius: 20px;
-    background: var(--panel);
-    padding: 20px;
-    position: sticky;
-    top: 14px;
-    backdrop-filter: blur(6px);
+  /* ---------- zoom buttons ---------- */
+  #controls { position: fixed; right: 16px; bottom: 16px; z-index: 3; display: flex; flex-direction: column; gap: 8px; }
+  .cbtn {
+    width: 42px; height: 42px; border-radius: 50%; border: 1.5px solid var(--pink);
+    background: rgba(28, 13, 46, .85); color: var(--text); font-size: 20px; cursor: pointer; font-family: inherit;
+    box-shadow: 0 0 14px rgba(255, 143, 199, .4);
   }
-  aside h2 { font-size: 1.6rem; }
-  .meta { color: var(--muted); font-size: 0.9rem; margin-top: 2px; }
-  .tagline { margin-top: 10px; line-height: 1.5; }
-  .hint { color: var(--muted); line-height: 1.6; }
-  h3 { font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 18px 0 8px; font-weight: 600; }
-  .path { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 0.9rem; }
-  .path .arrow { color: var(--muted); }
-  .path .step { padding: 2px 10px; border-radius: 999px; border: 1px solid; }
+  .cbtn:hover, .cbtn:focus-visible { background: #3a1a58; outline: none; }
 
-  .bubbles { display: flex; gap: 10px; flex-wrap: wrap; }
-  .bubble {
-    width: 74px; height: 74px; border-radius: 50%;
-    background: #1a1230; color: var(--text); border: 2px solid; cursor: pointer;
-    font-size: 0.78rem; font-weight: 600; font-family: inherit;
-    transition: transform .2s, box-shadow .2s;
+  /* ---------- lesson overlay ---------- */
+  #lesson { position: fixed; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center;
+    background: rgba(7, 4, 15, .62); backdrop-filter: blur(6px); padding: 14px; }
+  #lesson[hidden] { display: none; }
+  #card {
+    position: relative; width: min(640px, 100%); max-height: 94vh; overflow: auto;
+    background: rgba(32, 14, 52, .96); border: 1.5px solid rgba(255, 143, 199, .6); border-radius: 24px;
+    padding: 22px 20px 24px; box-shadow: 0 0 40px rgba(255, 143, 199, .3);
   }
-  .bubble:hover, .bubble:focus-visible { transform: scale(1.08); outline: none; }
-  .bubble.on { transform: scale(1.08); }
-  .bubble-text { margin-top: 12px; line-height: 1.55; font-size: 0.95rem; min-height: 4.5em; }
+  #close { position: absolute; top: 12px; right: 12px; }
+  .row { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; padding-right: 44px; }
+  .row.kinds { margin-bottom: 16px; }
+  .chip {
+    border: 1.5px solid rgba(255, 143, 199, .55); background: transparent; color: var(--text);
+    border-radius: 999px; padding: 4px 13px; font-size: .85rem; cursor: pointer; font-family: inherit;
+  }
+  .chip:hover, .chip:focus-visible { border-color: var(--pink); box-shadow: 0 0 10px rgba(255, 143, 199, .5); outline: none; }
+  .chip.on { background: var(--pink); color: var(--ink); border-color: var(--pink); font-weight: 700; }
 
-  pre {
-    background: #120b24; border: 1px solid var(--line); border-radius: 12px;
-    padding: 12px 14px; overflow-x: auto; font-size: 0.85rem; line-height: 1.5;
-    font-family: Consolas, Monaco, "Courier New", monospace; color: #ffe3f1;
+  pre.code {
+    background: #12081f; border: 1px solid rgba(255, 143, 199, .25); border-radius: 14px;
+    padding: 12px 6px; overflow-x: auto; font-family: Consolas, Monaco, "Courier New", monospace;
+    font-size: .92rem; line-height: 1.6; color: #ffe6f3; margin: 14px 0; white-space: pre;
   }
-  .code-note { color: var(--muted); font-size: 0.8rem; margin-bottom: 6px; }
-  .clear { margin-top: 18px; }
-  footer { text-align: center; color: var(--muted); font-size: 0.8rem; padding: 0 0 30px; }
+  .ln { padding: 0 12px; border-left: 3px solid transparent; min-height: 1.6em; transition: background .2s, opacity .2s; }
+  .ln.hot { background: rgba(255, 143, 199, .22); border-left-color: var(--pink); }
+  .ln.dim { opacity: .35; }
+  .tok { color: var(--ink); background: var(--pink); border-radius: 4px; padding: 0 3px; font-weight: 700; box-shadow: 0 0 12px var(--pink); }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; margin-top: 4px; }
+  .big {
+    border: none; border-radius: 999px; padding: 10px 22px; font-size: 1rem; font-weight: 700; cursor: pointer;
+    background: var(--pink); color: var(--ink); font-family: inherit; box-shadow: 0 0 18px rgba(255, 143, 199, .55);
+  }
+  .big.ghost { background: transparent; color: var(--text); border: 1.5px solid var(--pink); box-shadow: none; }
+  .big:active { transform: scale(.96); }
+  .stepper { display: inline-flex; align-items: center; gap: 8px; }
+  .sbtn { width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid var(--pink); background: transparent; color: var(--text); font-size: 18px; cursor: pointer; font-family: inherit; }
+  .sbtn:hover { background: #3a1a58; }
+  .sval { min-width: 2ch; text-align: center; font-size: 1.3rem; font-weight: 700; color: var(--pale); }
+
+  .stat { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; min-height: 52px; }
+  .badge { background: #12081f; border: 1.5px solid var(--pink); border-radius: 12px; padding: 6px 14px; font-family: Consolas, Monaco, monospace; font-size: 1.05rem; color: var(--pale); }
+  .badge.out { background: rgba(255, 143, 199, .18); }
+  .pop { animation: pop .35s ease; }
+  @keyframes pop { 0% { transform: scale(.6); opacity: .3; } 60% { transform: scale(1.18); } 100% { transform: scale(1); opacity: 1; } }
+
+  .flow { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+  .arrow { color: var(--pink); font-size: 1.4rem; }
+  .fbox { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; font-size: 1.4rem; font-weight: 700; border: 2px solid var(--pink); background: var(--ink); box-shadow: 0 0 16px rgba(255, 143, 199, .55); }
+  .result { font-size: 2rem; font-weight: 800; color: var(--pink); min-width: 2ch; text-align: center; text-shadow: 0 0 14px var(--pink); }
+  .slider { width: min(300px, 80vw); accent-color: var(--pink); }
+  .chips4 { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .val { border: 2px solid var(--pink); background: transparent; color: var(--text); border-radius: 14px; padding: 8px 20px; font-size: 1.15rem; font-family: Consolas, Monaco, monospace; cursor: pointer; }
+  .val.on { background: var(--pink); color: var(--ink); font-weight: 700; box-shadow: 0 0 16px var(--pink); }
 </style>
 </head>
 <body>
-<header>
-  <h1>The Family Tree of Programming Languages</h1>
-  <p>Click a language to see where it came from, how it thinks, and what its code looks like.</p>
-  <nav>
-    <a class="pill" href="notes.html">Notes &amp; next steps</a>
-  </nav>
-</header>
 
-<main>
-  <div class="map-wrap">
-    <svg id="map" role="group" aria-label="Family tree of programming languages">
-      <defs>
-        <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
-          <feGaussianBlur stdDeviation="4" result="b"/>
-          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-        <filter id="glowStrong" x="-80%" y="-80%" width="260%" height="260%">
-          <feGaussianBlur stdDeviation="9" result="b"/>
-          <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-      </defs>
-      <g id="regions"></g>
-      <g id="edges"></g>
-      <g id="nodes"></g>
-    </svg>
+<div id="timeline"></div>
+
+<svg id="stage" role="group" aria-label="Programming language tree">
+  <defs>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glowStrong" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="7" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <linearGradient id="stemGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff8fc7" stop-opacity="0"/>
+      <stop offset="1" stop-color="#ff8fc7" stop-opacity="0.9"/>
+    </linearGradient>
+  </defs>
+  <g id="world">
+    <g id="sparkles"></g>
+    <g id="branches"></g>
+    <g id="blossoms" filter="url(#glow)"></g>
+    <g id="nodes"></g>
+    <g id="bubbleLayer"></g>
+  </g>
+</svg>
+
+<div id="controls">
+  <button class="cbtn" id="zin" aria-label="Zoom in">+</button>
+  <button class="cbtn" id="zout" aria-label="Zoom out">−</button>
+  <button class="cbtn" id="zfit" aria-label="Show whole tree">⌂</button>
+</div>
+
+<div id="lesson" hidden>
+  <div id="card">
+    <button class="cbtn" id="close" aria-label="Close">✕</button>
+    <div class="row" id="langPills"></div>
+    <div class="row kinds" id="kindPills"></div>
+    <div id="lbody"></div>
   </div>
-
-  <aside id="panel" aria-live="polite">
-    <h2>Pick a language</h2>
-    <p class="hint">Each glowing circle is a language. Lines go from a language to the one it grew out of. Click one and its whole ancestry lights up.</p>
-  </aside>
-</main>
-
-<footer>Prototype: first 10 languages. Influence links and a timeline are coming next.</footer>
+</div>
 
 <script>
+(function () {
 const D = __DATA__;
 const NS = "http://www.w3.org/2000/svg";
-const R = 36;
-const svg = document.getElementById("map");
-svg.setAttribute("viewBox", "0 0 " + D.width + " " + D.height);
+const TL = 64;                 // width reserved for the timeline labels
+const PINK = "#ff8fc7", PALE = "#ffd6ec";
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
-const byId = {};
-D.nodes.forEach(n => { byId[n.id] = n; });
-
-function el(tag, attrs, parent) {
+function S(tag, attrs, parent) {
   const e = document.createElementNS(NS, tag);
   for (const k in attrs) e.setAttribute(k, attrs[k]);
   if (parent) parent.appendChild(e);
   return e;
 }
-
-// Family regions
-const regionsG = document.getElementById("regions");
-D.regions.forEach(r => {
-  el("rect", {
-    class: "region", x: r.x, y: 60, width: r.w, height: D.height - 80, rx: 28,
-    fill: r.color, "fill-opacity": 0.07, stroke: r.color, "stroke-opacity": 0.3
-  }, regionsG);
-  const t = el("text", { class: "region-label", x: r.x + r.w / 2, y: 90, fill: r.color }, regionsG);
-  t.textContent = r.family;
-});
-
-// Edges
-const edgesG = document.getElementById("edges");
-const edgeEls = {};
-D.nodes.filter(n => n.parent).forEach(n => {
-  const p = byId[n.parent];
-  const y1 = p.y + R, y2 = n.y - R, mid = (y1 + y2) / 2;
-  edgeEls[n.id] = el("path", {
-    class: "edge",
-    d: "M" + p.x + "," + y1 + " C" + p.x + "," + mid + " " + n.x + "," + mid + " " + n.x + "," + y2,
-    stroke: n.color
-  }, edgesG);
-});
-
-// Nodes
-const nodesG = document.getElementById("nodes");
-const nodeEls = {};
-D.nodes.forEach(n => {
-  const g = el("g", { class: "node", tabindex: 0, role: "button", "aria-label": n.name + ", " + n.year }, nodesG);
-  el("circle", { cx: n.x, cy: n.y, r: R, stroke: n.color, filter: "url(#glow)" }, g);
-  el("text", { class: "name", x: n.x, y: n.y }, g).textContent = n.name;
-  el("text", { class: "year", x: n.x, y: n.y + R + 18 }, g).textContent = n.year;
-  g.addEventListener("click", ev => { ev.stopPropagation(); select(n.id); });
-  g.addEventListener("keydown", ev => {
-    if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); select(n.id); }
-  });
-  nodeEls[n.id] = g;
-});
-
-function ancestors(id) {
-  const list = [];
-  let cur = byId[id];
-  while (cur) { list.unshift(cur); cur = cur.parent ? byId[cur.parent] : null; }
-  return list;
-}
-
-function clearSelection() {
-  Object.values(nodeEls).forEach(g => g.classList.remove("dim", "selected"));
-  Object.values(edgeEls).forEach(e => e.classList.remove("dim", "lit"));
-  Object.keys(nodeEls).forEach(id => nodeEls[id].firstChild.setAttribute("filter", "url(#glow)"));
-  showHint();
-}
-
-function showHint() {
-  const panel = document.getElementById("panel");
-  panel.replaceChildren();
-  const h = document.createElement("h2"); h.textContent = "Pick a language"; panel.appendChild(h);
-  const p = document.createElement("p"); p.className = "hint";
-  p.textContent = "Each glowing circle is a language. Lines go from a language to the one it grew out of. Click one and its whole ancestry lights up.";
-  panel.appendChild(p);
-}
-
-function add(parent, tag, cls, text) {
+function H(tag, cls, text) {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
   if (text !== undefined) e.textContent = text;
-  parent.appendChild(e);
   return e;
 }
-
-function select(id) {
-  const chain = ancestors(id);
-  const inChain = new Set(chain.map(n => n.id));
-
-  Object.keys(nodeEls).forEach(nid => {
-    const g = nodeEls[nid];
-    g.classList.toggle("dim", !inChain.has(nid));
-    g.classList.toggle("selected", nid === id);
-    g.firstChild.setAttribute("filter", nid === id ? "url(#glowStrong)" : "url(#glow)");
-  });
-  Object.keys(edgeEls).forEach(nid => {
-    const lit = inChain.has(nid);
-    edgeEls[nid].classList.toggle("lit", lit);
-    edgeEls[nid].classList.toggle("dim", !lit);
-  });
-
-  const n = byId[id];
-  const panel = document.getElementById("panel");
-  panel.replaceChildren();
-  add(panel, "h2", "", n.name);
-  add(panel, "p", "meta", n.year + " · " + n.family + " family");
-  add(panel, "p", "tagline", n.tagline);
-
-  add(panel, "h3", "", "Family path");
-  const path = add(panel, "div", "path");
-  chain.forEach((c, i) => {
-    if (i) add(path, "span", "arrow", "→");
-    const s = add(path, "span", "step", c.name);
-    s.style.borderColor = c.color;
-    s.style.color = c.color;
-  });
-  if (chain.length === 1) add(panel, "p", "meta", "This language is a root: no other language on this map came before it.");
-
-  add(panel, "h3", "", "Concepts (click a bubble)");
-  const bubbles = add(panel, "div", "bubbles");
-  const text = add(panel, "p", "bubble-text");
-  const btns = [];
-  function pick(i) {
-    btns.forEach((b, j) => {
-      b.classList.toggle("on", i === j);
-      b.style.boxShadow = i === j ? "0 0 18px " + n.color : "0 0 8px " + n.color + "66";
-    });
-    text.textContent = n.concepts[i].text;
-  }
-  n.concepts.forEach((c, i) => {
-    const b = add(bubbles, "button", "bubble", c.label);
-    b.style.borderColor = n.color;
-    b.addEventListener("click", () => pick(i));
-    btns.push(b);
-  });
-  pick(0);
-
-  add(panel, "h3", "", "Same task, this language");
-  add(panel, "p", "code-note", "Print the numbers 0 to 4 (" + n.codeLang + ")");
-  add(panel, "pre", "", n.code);
-
-  const clear = add(panel, "button", "pill clear", "Show the whole tree");
-  clear.addEventListener("click", clearSelection);
+function rng(seed) {            // small seeded random generator
+  return function () {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function bez(p0, p1, p2, p3, t) {
+  const u = 1 - t;
+  return u * u * u * p0 + 3 * u * u * t * p1 + 3 * u * t * t * p2 + t * t * t * p3;
 }
 
-svg.addEventListener("click", clearSelection);
-document.addEventListener("keydown", ev => { if (ev.key === "Escape") clearSelection(); });
+const stage = $("stage"), world = $("world");
+const byId = {};
+D.nodes.forEach(n => { byId[n.id] = n; });
+
+/* ================= draw the tree ================= */
+const R = 34;
+const rand = rng(11);
+
+// trunk stem hanging from the top
+const stem = D.stem;
+S("rect", { x: stem.x - 13, y: stem.y1, width: 26, height: stem.y2 - stem.y1, rx: 13, fill: "url(#stemGrad)" }, $("branches"));
+
+// branches: layered strokes so they glow without needing a filter
+const blossoms = $("blossoms");
+D.nodes.filter(n => n.parent).forEach(n => {
+  const p = byId[n.parent];
+  const dy = n.y - p.y;
+  const c1y = p.y + dy * 0.55, c2y = n.y - dy * 0.45;
+  const d = "M" + p.x + "," + p.y + " C" + p.x + "," + c1y + " " + n.x + "," + c2y + " " + n.x + "," + n.y;
+  const w = Math.max(5, 17 - 3.4 * (n.depth - 1));
+  const layers = [[w * 2.8, 0.10], [w * 1.8, 0.18], [w, 0.85], [w * 0.3, 0.75]];
+  layers.forEach((l, i) => {
+    S("path", { d: d, fill: "none", stroke: i === 3 ? PALE : PINK, "stroke-width": l[0], "stroke-opacity": l[1], "stroke-linecap": "round" }, $("branches"));
+  });
+  // little blossoms along the branch
+  [0.2, 0.4, 0.6, 0.8].forEach(t => {
+    const bx = bez(p.x, p.x, n.x, n.x, t), by = bez(p.y, c1y, c2y, n.y, t);
+    const side = rand() < 0.5 ? -1 : 1;
+    const off = side * (w * 0.9 + 6 + rand() * 14);
+    const r = 2.2 + rand() * 2.6;
+    const c = S("circle", { cx: bx + off, cy: by + (rand() - 0.5) * 16, r: r, fill: rand() < 0.5 ? PALE : PINK, class: "twinkle" }, blossoms);
+    c.style.setProperty("--d", (rand() * 3).toFixed(2) + "s");
+  });
+});
+
+// background sparkles
+for (let i = 0; i < 70; i++) {
+  const c = S("circle", { cx: rand() * D.width, cy: rand() * D.height, r: 0.8 + rand() * 1.6, fill: PALE, class: "twinkle" }, $("sparkles"));
+  c.style.setProperty("--d", (rand() * 3).toFixed(2) + "s");
+}
+
+// language nodes drawn as flowers
+const nodesG = $("nodes");
+const nodeEls = {};
+D.nodes.forEach(n => {
+  const g = S("g", { class: "node", transform: "translate(" + n.x + "," + n.y + ")", "data-id": n.id, filter: "url(#glow)" }, nodesG);
+  for (let a = 0; a < 360; a += 72) {
+    S("ellipse", { class: "petal", cx: 0, cy: -38, rx: 17, ry: 24, transform: "rotate(" + a + ")" }, g);
+  }
+  S("circle", { class: "core", r: R }, g);
+  S("text", { class: "name" }, g).textContent = n.name;
+  nodeEls[n.id] = g;
+});
+
+// lesson bubbles that appear when you zoom into a language
+const KINDS = [["types", "int", "types"], ["cond", "if", "if / else"], ["loop", "for", "loops"], ["fn", "ƒ", "functions"]];
+const ANGLES = [145, 108, 72, 35];
+const bubbleGroups = {};
+D.nodes.forEach(n => {
+  const g = S("g", { class: "bubbles", transform: "translate(" + n.x + "," + n.y + ")" }, $("bubbleLayer"));
+  KINDS.forEach((k, i) => {
+    const a = ANGLES[i] * Math.PI / 180;
+    const b = S("g", { class: "bubble", transform: "translate(" + (Math.cos(a) * 102).toFixed(1) + "," + (Math.sin(a) * 102 + 6).toFixed(1) + ")", "data-node": n.id, "data-kind": k[0], filter: "url(#glow)" }, g);
+    S("circle", { r: 21 }, b);
+    S("text", { class: "glyph" }, b).textContent = k[1];
+    S("text", { class: "lab", y: 35 }, b).textContent = k[2];
+  });
+  bubbleGroups[n.id] = g;
+});
+
+/* ================= timeline ================= */
+const tl = $("timeline");
+const ticks = D.years.map(yy => {
+  const t = H("div", "tick");
+  t.appendChild(H("div", "rule"));
+  t.appendChild(H("span", "yr", String(yy.year)));
+  tl.appendChild(t);
+  return { el: t, y: yy.y };
+});
+
+/* ================= pan and zoom ================= */
+let k = 1, tx = 0, ty = 0, interacted = false, anim = 0;
+const KMIN = 0.2, KMAX = 4;
+
+function apply() {
+  world.setAttribute("transform", "translate(" + tx + "," + ty + ") scale(" + k + ")");
+  const H_ = innerHeight;
+  ticks.forEach(t => {
+    const sy = ty + t.y * k;
+    t.el.style.transform = "translateY(" + sy + "px)";
+    t.el.style.display = (sy < -20 || sy > H_ + 20) ? "none" : "block";
+  });
+  updateBubbles();
+}
+function center() { return { x: TL + (innerWidth - TL) / 2, y: innerHeight / 2 }; }
+function fit() {
+  const pad = 30;
+  const kk = Math.min((innerWidth - TL - pad * 2) / D.width, (innerHeight - pad * 2) / D.height);
+  k = clamp(kk, KMIN, KMAX);
+  tx = TL + (innerWidth - TL - D.width * k) / 2;
+  ty = (innerHeight - D.height * k) / 2;
+  apply();
+}
+function zoomAt(cx, cy, f) {
+  const nk = clamp(k * f, KMIN, KMAX);
+  const r = nk / k;
+  tx = cx - (cx - tx) * r;
+  ty = cy - (cy - ty) * r;
+  k = nk;
+}
+function animateTo(tk, ttx, tty, ms) {
+  const id = ++anim, k0 = k, x0 = tx, y0 = ty, t0 = performance.now();
+  (function step(now) {
+    if (id !== anim) return;
+    let p = Math.min(1, (now - t0) / ms);
+    p = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+    k = k0 + (tk - k0) * p; tx = x0 + (ttx - x0) * p; ty = y0 + (tty - y0) * p;
+    apply();
+    if (p < 1) requestAnimationFrame(step);
+  })(t0);
+}
+function focusNode(n) {
+  const c = center(), tk = 2.4;
+  animateTo(tk, c.x - n.x * tk, c.y - n.y * tk, 550);
+}
+function updateBubbles() {
+  let best = null, bd = 1e9;
+  if (k >= 1.4) {
+    const c = center();
+    D.nodes.forEach(n => {
+      const d = Math.hypot(tx + n.x * k - c.x, ty + n.y * k - c.y);
+      if (d < bd) { bd = d; best = n; }
+    });
+    if (bd > Math.min(innerWidth, innerHeight) * 0.5) best = null;
+  }
+  D.nodes.forEach(n => bubbleGroups[n.id].classList.toggle("show", !!best && best.id === n.id));
+}
+
+stage.addEventListener("wheel", e => {
+  e.preventDefault();
+  interacted = true; anim++;
+  const f = Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0018));
+  zoomAt(e.clientX, e.clientY, f);
+  apply();
+}, { passive: false });
+
+const ptrs = new Map();
+let moved = 0, downTarget = null;
+stage.addEventListener("pointerdown", e => {
+  stage.setPointerCapture(e.pointerId);
+  ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (ptrs.size === 1) { moved = 0; downTarget = e.target; } else { moved = 99; }
+  interacted = true; anim++;
+});
+stage.addEventListener("pointermove", e => {
+  const p = ptrs.get(e.pointerId);
+  if (!p) return;
+  if (ptrs.size === 1) {
+    const dx = e.clientX - p.x, dy = e.clientY - p.y;
+    moved += Math.abs(dx) + Math.abs(dy);
+    tx += dx; ty += dy;
+    p.x = e.clientX; p.y = e.clientY;
+    apply();
+  } else if (ptrs.size === 2) {
+    const other = [...ptrs.entries()].find(([id]) => id !== e.pointerId)[1];
+    const pd = Math.hypot(p.x - other.x, p.y - other.y);
+    const pmx = (p.x + other.x) / 2, pmy = (p.y + other.y) / 2;
+    p.x = e.clientX; p.y = e.clientY;
+    const nd = Math.hypot(p.x - other.x, p.y - other.y);
+    const mx = (p.x + other.x) / 2, my = (p.y + other.y) / 2;
+    if (pd > 0) zoomAt(mx, my, nd / pd);
+    tx += mx - pmx; ty += my - pmy;
+    apply();
+  }
+});
+function endPointer(e, isCancel) {
+  const wasSingle = ptrs.size === 1;
+  ptrs.delete(e.pointerId);
+  if (!isCancel && wasSingle && moved < 6) tap(downTarget);
+}
+stage.addEventListener("pointerup", e => endPointer(e, false));
+stage.addEventListener("pointercancel", e => endPointer(e, true));
+
+function tap(target) {
+  if (!target || !target.closest) return;
+  const b = target.closest(".bubble");
+  if (b) { openLesson(b.getAttribute("data-node"), b.getAttribute("data-kind")); return; }
+  const nd = target.closest(".node");
+  if (nd) focusNode(byId[nd.getAttribute("data-id")]);
+}
+
+$("zin").onclick = () => { const c = center(); interacted = true; zoomAt(c.x, c.y, 1.4); apply(); };
+$("zout").onclick = () => { const c = center(); interacted = true; zoomAt(c.x, c.y, 1 / 1.4); apply(); };
+$("zfit").onclick = () => { interacted = false; anim++; fit(); };
+addEventListener("resize", () => { if (!interacted) fit(); else apply(); });
+
+/* ================= lessons ================= */
+const lessonEl = $("lesson"), lbody = $("lbody");
+let cur = { lang: null, kind: null }, timer = null;
+
+function fill(t, v) { return t.replace(/\{(N|M|a|b|r|v)\}/g, (m, key) => String(v[key])); }
+function pop(el) { el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop"); }
+function stopAuto() { if (timer) { clearInterval(timer); timer = null; } }
+
+function codeBlock(n) {
+  const pre = H("pre", "code");
+  const els = [];
+  for (let i = 0; i < n; i++) { const d = H("div", "ln", " "); pre.appendChild(d); els.push(d); }
+  return { pre: pre, els: els };
+}
+function setLine(el, text) { el.textContent = text === "" ? " " : text; }
+function stepper(min, max, val, onChange) {
+  const w = H("div", "stepper");
+  const dec = H("button", "sbtn", "−"), out = H("span", "sval", String(val)), inc = H("button", "sbtn", "+");
+  let v = val;
+  function set(nv) { v = clamp(nv, min, max); out.textContent = v; onChange(v); }
+  dec.onclick = () => set(v - 1);
+  inc.onclick = () => set(v + 1);
+  w.append(dec, out, inc);
+  return { el: w, get: () => v };
+}
+
+function openLesson(lang, kind) {
+  cur = { lang: lang, kind: kind };
+  lessonEl.hidden = false;
+  renderLesson();
+}
+function closeLesson() { stopAuto(); lessonEl.hidden = true; }
+$("close").onclick = closeLesson;
+lessonEl.addEventListener("click", e => { if (e.target === lessonEl) closeLesson(); });
+addEventListener("keydown", e => { if (e.key === "Escape") closeLesson(); });
+
+function renderLesson() {
+  stopAuto();
+  const lp = $("langPills"), kp = $("kindPills");
+  lp.replaceChildren(); kp.replaceChildren(); lbody.replaceChildren();
+  D.langs.forEach(l => {
+    const b = H("button", "chip" + (l.id === cur.lang ? " on" : ""), l.name);
+    b.onclick = () => { cur.lang = l.id; renderLesson(); };
+    lp.appendChild(b);
+  });
+  KINDS.forEach(kk => {
+    const b = H("button", "chip" + (kk[0] === cur.kind ? " on" : ""), kk[2]);
+    b.onclick = () => { cur.kind = kk[0]; renderLesson(); };
+    kp.appendChild(b);
+  });
+  const L = D.lessons[cur.lang];
+  if (cur.kind === "loop") renderLoop(L.loop);
+  else if (cur.kind === "fn") renderFn(L.fn);
+  else if (cur.kind === "cond") renderCond(L.cond);
+  else renderTypes(L.types);
+}
+
+function renderLoop(spec) {
+  let N = 4, s = -1;
+  const cb = codeBlock(spec.lines.length);
+  const stat = H("div", "stat");
+  const iBadge = H("span", "badge", "i");
+  const outBox = H("div", "stat");
+  const total = () => 2 * N;
+  function paintCode() { spec.lines.forEach((t, i) => setLine(cb.els[i], fill(t, { N: N, M: N - 1 }))); }
+  function paint() {
+    cb.els.forEach(e => e.classList.remove("hot"));
+    let iv = "i", outs = 0;
+    if (s >= 0 && s < total()) {
+      const kk = s >> 1;
+      if (s % 2 === 0) { cb.els[spec.header].classList.add("hot"); outs = kk; }
+      else { cb.els[spec.body].classList.add("hot"); outs = kk + 1; }
+      iv = "i = " + kk;
+    } else if (s >= total()) { iv = "done ✓"; outs = N; }
+    iBadge.textContent = iv; pop(iBadge);
+    outBox.replaceChildren();
+    for (let j = 0; j < outs; j++) {
+      const o = H("span", "badge out", String(j));
+      outBox.appendChild(o);
+      if (j === outs - 1 && s % 2 === 1) pop(o);
+    }
+  }
+  function step() { if (s >= total()) s = -1; s++; paint(); if (s >= total()) stopAuto(); }
+  function reset() { stopAuto(); s = -1; paint(); }
+  const nStep = stepper(1, 6, N, v => { N = v; paintCode(); reset(); });
+  stat.append(iBadge);
+  const btns = H("div", "controls");
+  const bStep = H("button", "big", "Step ▶"), bAuto = H("button", "big ghost", "Auto"), bReset = H("button", "big ghost", "↺");
+  bStep.onclick = () => { stopAuto(); step(); };
+  bAuto.onclick = () => { if (timer) { stopAuto(); return; } if (s >= total()) s = -1; step(); timer = setInterval(step, 700); };
+  bReset.onclick = reset;
+  btns.append(nStep.el, bStep, bAuto, bReset);
+  lbody.append(cb.pre, stat, outBox, btns);
+  paintCode(); paint();
+}
+
+function renderFn(spec) {
+  let a = 3, b = 4;
+  const cb = codeBlock(spec.lines.length);
+  const result = H("div", "result");
+  function paint(animate) {
+    spec.lines.forEach((t, i) => setLine(cb.els[i], fill(t, { a: a, b: b })));
+    cb.els.forEach((e, i) => e.classList.toggle("hot", i === spec.call));
+    result.textContent = String(a + b);
+    if (animate) pop(result);
+  }
+  const sa = stepper(0, 9, a, v => { a = v; paint(true); });
+  const sb = stepper(0, 9, b, v => { b = v; paint(true); });
+  const flow = H("div", "flow");
+  flow.append(sa.el, sb.el, H("span", "arrow", "→"), H("div", "fbox", "ƒ"), H("span", "arrow", "→"), result);
+  lbody.append(flow, cb.pre);
+  paint(false);
+}
+
+function renderCond(spec) {
+  let v = 16;
+  const cb = codeBlock(spec.lines.length);
+  const out = H("span", "badge out");
+  const slider = H("input", "slider");
+  slider.type = "range"; slider.min = 10; slider.max = 25; slider.value = v;
+  const label = H("span", "sval");
+  function paint() {
+    const adult = v >= 18;
+    spec.lines.forEach((t, i) => setLine(cb.els[i], fill(t, { v: v })));
+    cb.els.forEach((e, i) => {
+      e.classList.toggle("hot", i === (adult ? spec.then : spec.else));
+      e.classList.toggle("dim", i === (adult ? spec.else : spec.then));
+    });
+    label.textContent = String(v);
+    out.textContent = adult ? "Adult" : "Minor"; pop(out);
+  }
+  slider.oninput = () => { v = Number(slider.value); paint(); };
+  const row = H("div", "controls");
+  row.append(slider, label);
+  const stat = H("div", "stat"); stat.appendChild(out);
+  lbody.append(row, cb.pre, stat);
+  paint();
+}
+
+function renderTypes(decls) {
+  const values = ["42", "3.14", "A", "true"];
+  let sel = 0;
+  const chips = H("div", "chips4");
+  const cb = codeBlock(decls.length);
+  function paint() {
+    decls.forEach((d, i) => {
+      const line = cb.els[i];
+      line.replaceChildren();
+      const text = d[0], tok = d[1], at = text.indexOf(tok);
+      if (i === sel && at >= 0) {
+        line.append(document.createTextNode(text.slice(0, at)));
+        line.appendChild(H("span", "tok", tok));
+        line.append(document.createTextNode(text.slice(at + tok.length)));
+      } else { line.textContent = text; }
+      line.classList.toggle("hot", i === sel);
+      line.classList.toggle("dim", i !== sel);
+    });
+    [...chips.children].forEach((c, i) => c.classList.toggle("on", i === sel));
+  }
+  values.forEach((val, i) => {
+    const c = H("button", "val", val);
+    c.onclick = () => { sel = i; paint(); };
+    chips.appendChild(c);
+  });
+  lbody.append(chips, cb.pre);
+  paint();
+}
+
+fit();
+})();
 </script>
 </body>
 </html>
