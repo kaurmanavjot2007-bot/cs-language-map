@@ -1,98 +1,75 @@
-"""Build the static site: reads the data, computes the tree layout, and
-writes docs/index.html (the folder GitHub Pages serves).
-
-Run:  python build.py
-To add another family later, add its name to FAMILIES_SHOWN and give each
-of its languages an entry in lessons.py.
-"""
+"""Build the static site. Run python3 build.py; publish the docs folder."""
 import json
-import os
-
+from pathlib import Path
 from languages import LANGUAGES, validate
 from lessons import LESSONS
 
-FAMILIES_SHOWN = ["ALGOL"]
-
-SLOT = 240        # horizontal space per leaf
-PX_PER_YEAR = 20  # the timeline: vertical space per year
-TOP_PAD = 190     # room above the oldest language for the trunk stem
-SIDE_PAD = 130
-BOTTOM_PAD = 170
+FAMILIES_SHOWN = ['ALGOL']
+SLOT = 300
+PX_PER_YEAR = 10
+TOP_PAD = 80
+SIDE_PAD = 75
+BOTTOM_PAD = 90
 
 
 def layout(languages):
     children = {}
     for lang in languages:
-        children.setdefault(lang["parent"], []).append(lang)
+        children.setdefault(lang['parent'], []).append(lang)
     for kids in children.values():
-        kids.sort(key=lambda l: l["year"])
-
-    pos = {}
-    depth_of = {}
-
-    def place(node_id, depth, x0):
-        depth_of[node_id] = depth
-        kids = children.get(node_id, [])
+        kids.sort(key=lambda l: (l['year'], l['id']))
+    pos, depths = {}, {}
+    def place(node, depth, x0):
+        depths[node] = depth
+        kids = children.get(node, [])
         if not kids:
-            pos[node_id] = x0 + 0.5
+            pos[node] = x0 + .5
             return 1
         cursor = x0
         for kid in kids:
-            cursor += place(kid["id"], depth + 1, cursor)
-        pos[node_id] = (pos[kids[0]["id"]] + pos[kids[-1]["id"]]) / 2
+            cursor += place(kid['id'], depth + 1, cursor)
+        pos[node] = (pos[kids[0]['id']] + pos[kids[-1]['id']]) / 2
         return cursor - x0
-
     cursor = 0
     for root in children.get(None, []):
-        cursor += place(root["id"], 0, cursor)
-
-    first = min(l["year"] for l in languages)
-    last = max(l["year"] for l in languages)
-    width = round(cursor * SLOT + SIDE_PAD * 2)
-    height = round(TOP_PAD + (last - first) * PX_PER_YEAR + BOTTOM_PAD)
-
-    nodes = []
-    for lang in sorted(languages, key=lambda l: l["year"]):
-        nodes.append({
-            "id": lang["id"], "name": lang["name"], "year": lang["year"],
-            "parent": lang["parent"], "depth": depth_of[lang["id"]],
-            "x": round(SIDE_PAD + pos[lang["id"]] * SLOT),
-            "y": round(TOP_PAD + (lang["year"] - first) * PX_PER_YEAR),
-        })
-
-    years = sorted({n["year"] for n in nodes})
-    root = next(n for n in nodes if n["parent"] is None)
-    return {
-        "width": width, "height": height, "nodes": nodes,
-        "years": [{"year": y, "y": TOP_PAD + (y - first) * PX_PER_YEAR} for y in years],
-        "stem": {"x": root["x"], "y1": 0, "y2": root["y"]},
-        "langs": [{"id": n["id"], "name": n["name"]} for n in nodes],
-    }
+        cursor += place(root['id'], 0, cursor)
+    first, last = min(l['year'] for l in languages), max(l['year'] for l in languages)
+    nodes = [dict(id=l['id'], name=l['name'], year=l['year'], parent=l['parent'],
+                  depth=depths[l['id']], x=round(SIDE_PAD + pos[l['id']] * SLOT),
+                  y=TOP_PAD + (l['year'] - first) * PX_PER_YEAR)
+             for l in sorted(languages, key=lambda l: l['year'])]
+    # Offset a sole child so nearby years do not overlap their language orbs.
+    for n in nodes:
+        if n['parent'] and len(children[n['parent']]) == 1:
+            n['x'] -= 110
+    roots = [n for n in nodes if n['parent'] is None]
+    return dict(width=cursor*SLOT+SIDE_PAD*2,
+                height=TOP_PAD+(last-first)*PX_PER_YEAR+BOTTOM_PAD, nodes=nodes,
+                years=[dict(year=y,y=TOP_PAD+(y-first)*PX_PER_YEAR) for y in sorted({n['year'] for n in nodes})],
+                stem=dict(x=roots[0]['x'],y1=0,y2=roots[0]['y']),
+                langs=[dict(id=n['id'],name=n['name']) for n in nodes])
 
 
 def main():
-    shown = [l for l in LANGUAGES if l["family"] in FAMILIES_SHOWN]
+    root = Path(__file__).resolve().parent
+    shown = [l for l in LANGUAGES if l['family'] in FAMILIES_SHOWN]
+    if not shown:
+        raise SystemExit('No languages selected')
     problems = validate(shown)
     if problems:
-        raise SystemExit("Fix the data first: " + "; ".join(problems))
+        raise SystemExit('; '.join(problems))
     for lang in shown:
-        lesson = LESSONS.get(lang["id"])
-        if not lesson or not all(k in lesson for k in ("types", "cond", "loop", "fn")):
-            raise SystemExit(f"Missing lessons for {lang['id']} in lessons.py")
-
+        if not all(k in LESSONS.get(lang['id'], {}) for k in ('types','cond','loop','fn')):
+            raise SystemExit('Missing lessons for ' + lang['id'])
     data = layout(shown)
-    data["lessons"] = {l["id"]: LESSONS[l["id"]] for l in shown}
+    data['lessons'] = {l['id']: LESSONS[l['id']] for l in shown}
+    template = (root/'template.html').read_text(encoding='utf-8')
+    if template.count('__DATA__') != 1:
+        raise SystemExit('Expected one __DATA__ placeholder')
+    payload = json.dumps(data,ensure_ascii=False).replace('</','<\\/')
+    (root/'docs').mkdir(exist_ok=True)
+    (root/'docs/index.html').write_text(template.replace('__DATA__',payload),encoding='utf-8')
+    print(f"Built docs/index.html with {len(shown)} languages")
 
-    with open("template.html", encoding="utf-8") as f:
-        html = f.read()
-    payload = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
-    html = html.replace("__DATA__", payload)
-
-    os.makedirs("docs", exist_ok=True)
-    with open("docs/index.html", "w", encoding="utf-8") as f:
-        f.write(html)
-    print(f"Built docs/index.html with {len(data['nodes'])} languages")
-
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
