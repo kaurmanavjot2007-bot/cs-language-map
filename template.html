@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Language Tree</title>
 <style>
   :root {
@@ -12,8 +12,6 @@
     --ink: #1c0d2e;
     --text: #fff0f8;
     --muted: #cfa6c0;
-    --good: #8ff0c8;
-    --bad: #ff7a8a;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
@@ -32,24 +30,22 @@
   /* ---------- the tree ---------- */
   #stage { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 1; touch-action: none; cursor: grab; }
   #stage:active { cursor: grabbing; }
-
-  .node { cursor: pointer; outline: none; }
-  .node .body { transform-box: fill-box; transform-origin: center; transition: transform .25s; }
-  .node:hover .body, .node:focus-visible .body { transform: scale(1.09); }
-  .node .name { fill: #2a0f3d; font-size: 13.5px; font-weight: 800; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
-  .halo { animation: breathe 4.5s ease-in-out infinite; animation-delay: var(--d, 0s); }
-  @keyframes breathe { 0%, 100% { opacity: .35; } 50% { opacity: .9; } }
+  .node { cursor: pointer; }
+  .node .name { fill: #fff; font-size: 14px; font-weight: 700; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+  .node .core { fill: var(--ink); stroke: var(--pink); stroke-width: 2.5; transition: stroke-width .2s; }
+  .node .petal { fill: rgba(255, 143, 199, .25); stroke: var(--pink); stroke-width: 1.4; transition: fill .2s; }
+  .node:hover .core { stroke-width: 4; }
+  .node:hover .petal { fill: rgba(255, 143, 199, .42); }
   .twinkle { animation: tw 3.2s ease-in-out infinite; animation-delay: var(--d, 0s); }
-  @keyframes tw { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+  @keyframes tw { 0%, 100% { opacity: .2; } 50% { opacity: 1; } }
 
-  .leaves { opacity: 0; pointer-events: none; transition: opacity .35s; }
-  .leaves.show { opacity: 1; pointer-events: auto; }
-  .lesson-leaf { cursor: pointer; }
-  .lesson-leaf .shape { fill: rgba(255, 143, 199, .22); stroke: var(--pink); stroke-width: 2; transition: fill .2s; }
-  .lesson-leaf .rib { stroke: var(--pale); stroke-width: 1.2; opacity: .35; fill: none; }
-  .lesson-leaf:hover .shape { fill: rgba(255, 143, 199, .5); }
-  .lesson-leaf .glyph { fill: #fff; font-size: 14px; font-weight: 800; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
-  .lesson-leaf .lab { fill: var(--pale); font-size: 10px; text-anchor: middle; pointer-events: none; opacity: .95; }
+  .bubbles { opacity: 0; pointer-events: none; transition: opacity .35s; }
+  .bubbles.show { opacity: 1; pointer-events: auto; }
+  .bubble { cursor: pointer; }
+  .bubble .leaf { fill: var(--ink); stroke: var(--pink); stroke-width: 2; }
+  .bubble:hover .leaf { fill: #3a1a58; stroke-width: 3.5; }
+  .bubble .glyph { fill: #fff; font-size: 11px; font-weight: 700; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+  .bubble .lab { fill: var(--pale); font-size: 8.5px; text-anchor: middle; pointer-events: none; opacity: .9; }
 
   /* ---------- zoom buttons ---------- */
   #controls { position: fixed; right: 16px; bottom: 16px; z-index: 3; display: flex; flex-direction: column; gap: 8px; }
@@ -65,16 +61,13 @@
     background: rgba(7, 4, 15, .62); backdrop-filter: blur(6px); padding: 14px; }
   #lesson[hidden] { display: none; }
   #card {
-    position: relative; width: min(660px, 100%); max-height: 94vh; overflow: auto;
+    position: relative; width: min(640px, 100%); max-height: 94vh; overflow: auto;
     background: rgba(32, 14, 52, .96); border: 1.5px solid rgba(255, 143, 199, .6); border-radius: 24px;
-    padding: 20px 20px 24px; box-shadow: 0 0 40px rgba(255, 143, 199, .3);
+    padding: 22px 20px 24px; box-shadow: 0 0 40px rgba(255, 143, 199, .3);
   }
   #close { position: absolute; top: 12px; right: 12px; }
-  #lhead { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; padding-right: 50px; }
-  #lhead .mini { width: 34px; height: 34px; border-radius: 50%; flex: none;
-    background: radial-gradient(circle at 35% 30%, #fff2f9 0%, #ff9fd0 45%, #ff5fa8 100%); box-shadow: 0 0 16px var(--pink); }
-  #lhead h2 { font-size: 1.35rem; text-shadow: 0 0 14px rgba(255, 143, 199, .6); }
-  .row { display: flex; flex-wrap: wrap; gap: 7px; }
+  .row { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; padding-right: 44px; }
+  .row.kinds { margin-bottom: 16px; }
   .chip {
     border: 1.5px solid rgba(255, 143, 199, .55); background: transparent; color: var(--text);
     border-radius: 999px; padding: 4px 13px; font-size: .85rem; cursor: pointer; font-family: inherit;
@@ -82,66 +75,54 @@
   .chip:hover, .chip:focus-visible { border-color: var(--pink); box-shadow: 0 0 10px rgba(255, 143, 199, .5); outline: none; }
   .chip.on { background: var(--pink); color: var(--ink); border-color: var(--pink); font-weight: 700; }
 
-  #dots { display: flex; gap: 8px; margin: 16px 0 6px; }
-  .dot { width: 11px; height: 11px; border-radius: 50%; border: 1.5px solid var(--pink); transition: background .3s, box-shadow .3s; }
-  .dot.here { box-shadow: 0 0 8px var(--pink); }
-  .dot.done { background: var(--good); border-color: var(--good); box-shadow: 0 0 8px var(--good); }
-
-  .goal { font-size: 1.15rem; font-weight: 700; color: var(--pale); margin: 8px 0 4px; }
   pre.code {
     background: #12081f; border: 1px solid rgba(255, 143, 199, .25); border-radius: 14px;
     padding: 12px 6px; overflow-x: auto; font-family: Consolas, Monaco, "Courier New", monospace;
-    font-size: .95rem; line-height: 1.9; color: #ffe6f3; margin: 10px 0 14px; white-space: pre;
+    font-size: .92rem; line-height: 1.6; color: #ffe6f3; margin: 14px 0; white-space: pre;
   }
-  .ln { padding: 0 14px; min-height: 1.9em; }
+  .ln { padding: 0 12px; border-left: 3px solid transparent; min-height: 1.6em; transition: background .2s, opacity .2s; }
+  .ln.hot { background: rgba(255, 143, 199, .22); border-left-color: var(--pink); }
+  .ln.dim { opacity: .35; }
+  .tok { color: var(--ink); background: var(--pink); border-radius: 4px; padding: 0 3px; font-weight: 700; box-shadow: 0 0 12px var(--pink); }
 
-  .slot {
-    display: inline-block; min-width: 3.2ch; text-align: center; padding: 0 8px; border-radius: 8px;
-    border: 1.5px dashed var(--pink); color: var(--pink); animation: breathe 1.6s ease-in-out infinite;
-  }
-  .slot.filled { animation: none; border-style: solid; color: var(--ink); background: var(--pink); font-weight: 700; }
-  .slot.ok { background: var(--good); border-color: var(--good); box-shadow: 0 0 14px var(--good); }
-  .slot.bad { background: var(--bad); border-color: var(--bad); box-shadow: 0 0 14px var(--bad); animation: shake .35s; }
-  @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
-
-  .tiles { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-  .tile {
-    border: 2px solid var(--pink); background: transparent; color: var(--text); border-radius: 14px;
-    padding: 9px 22px; font-size: 1.1rem; font-family: Consolas, Monaco, "Courier New", monospace; cursor: pointer;
-  }
-  .tile:hover:not(:disabled), .tile:focus-visible { background: #3a1a58; box-shadow: 0 0 14px rgba(255, 143, 199, .5); outline: none; }
-  .tile.sel { background: var(--pink); color: var(--ink); font-weight: 700; }
-  .tile.sel.ok { background: var(--good); border-color: var(--good); }
-  .tile.sel.bad { background: var(--bad); border-color: var(--bad); }
-  .tile:disabled { cursor: default; opacity: .55; }
-  .tile.sel:disabled { opacity: 1; }
-
-  #fb { min-height: 96px; margin-top: 14px; text-align: center; }
-  .sim { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; min-height: 44px; margin-bottom: 8px; }
-  .simlabel { color: var(--muted); font-size: .85rem; }
-  .badge { background: #12081f; border: 1.5px solid var(--pink); border-radius: 12px; padding: 5px 13px;
-    font-family: Consolas, Monaco, monospace; font-size: 1.05rem; color: var(--pale); animation: pop .35s ease backwards; }
-  .badge.good { border-color: var(--good); color: var(--good); }
-  .badge.bad { border-color: var(--bad); color: var(--bad); }
-  @keyframes pop { 0% { transform: scale(.5); opacity: 0; } 60% { transform: scale(1.15); } 100% { transform: scale(1); opacity: 1; } }
-  .msg { font-size: 1rem; line-height: 1.5; }
-  .msg.good { color: var(--good); }
-  .msg.oops { color: #ffb0bb; }
-  .actions { display: flex; gap: 10px; justify-content: center; margin-top: 12px; min-height: 44px; flex-wrap: wrap; }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; margin-top: 4px; }
   .big {
-    border: none; border-radius: 999px; padding: 10px 24px; font-size: 1rem; font-weight: 700; cursor: pointer;
+    border: none; border-radius: 999px; padding: 10px 22px; font-size: 1rem; font-weight: 700; cursor: pointer;
     background: var(--pink); color: var(--ink); font-family: inherit; box-shadow: 0 0 18px rgba(255, 143, 199, .55);
-    animation: pop .35s ease backwards;
   }
   .big.ghost { background: transparent; color: var(--text); border: 1.5px solid var(--pink); box-shadow: none; }
   .big:active { transform: scale(.96); }
-  .done-card { text-align: center; padding: 24px 0 8px; }
-  .done-card .check { font-size: 3.2rem; color: var(--good); text-shadow: 0 0 20px var(--good); animation: pop .5s ease backwards; }
-  .done-card .nice { font-size: 1.3rem; font-weight: 700; margin-top: 6px; }
+  .stepper { display: inline-flex; align-items: center; gap: 8px; }
+  .sbtn { width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid var(--pink); background: transparent; color: var(--text); font-size: 18px; cursor: pointer; font-family: inherit; }
+  .sbtn:hover { background: #3a1a58; }
+  .sval { min-width: 2ch; text-align: center; font-size: 1.3rem; font-weight: 700; color: var(--pale); }
 
-  @media (prefers-reduced-motion: reduce) {
-    .halo, .twinkle, .slot, .badge, .big { animation: none !important; }
-  }
+  .stat { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; min-height: 52px; }
+  .badge { background: #12081f; border: 1.5px solid var(--pink); border-radius: 12px; padding: 6px 14px; font-family: Consolas, Monaco, monospace; font-size: 1.05rem; color: var(--pale); }
+  .badge.out { background: rgba(255, 143, 199, .18); }
+  .pop { animation: pop .35s ease; }
+  @keyframes pop { 0% { transform: scale(.6); opacity: .3; } 60% { transform: scale(1.18); } 100% { transform: scale(1); opacity: 1; } }
+
+  .flow { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+  .arrow { color: var(--pink); font-size: 1.4rem; }
+  .fbox { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; font-size: 1.4rem; font-weight: 700; border: 2px solid var(--pink); background: var(--ink); box-shadow: 0 0 16px rgba(255, 143, 199, .55); }
+  .result { font-size: 2rem; font-weight: 800; color: var(--pink); min-width: 2ch; text-align: center; text-shadow: 0 0 14px var(--pink); }
+  .slider { width: min(300px, 80vw); accent-color: var(--pink); }
+  .chips4 { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .val { border: 2px solid var(--pink); background: transparent; color: var(--text); border-radius: 14px; padding: 8px 20px; font-size: 1.15rem; font-family: Consolas, Monaco, monospace; cursor: pointer; }
+  .val.on { background: var(--pink); color: var(--ink); font-weight: 700; box-shadow: 0 0 16px var(--pink); }
+
+  #notesLink {position:fixed;top:16px;right:18px;z-index:3;color:var(--pale);font-size:13px;text-decoration:none;}
+  #hint {position:fixed;bottom:18px;left:75px;right:75px;z-index:2;text-align:center;color:var(--muted);font-size:12px;pointer-events:none;}
+  .goal {color:var(--pale);margin:8px 0 12px;line-height:1.5;}
+  .explain {color:var(--muted);line-height:1.5;margin:12px 0;min-height:45px;}
+  .question {margin:12px 0;font-weight:600;}
+  .answer {background:#12081f;color:var(--text);border:1px solid var(--pink);padding:10px;border-radius:10px;font:inherit;width:100%;}
+  .feedback {margin:12px 0;padding:12px;border-radius:12px;background:rgba(255,143,199,.1);line-height:1.5;}
+  button:disabled {opacity:.4;cursor:default;}
+  :focus-visible {outline:2px solid var(--pale);outline-offset:5px;}
+  .node:focus .core {stroke-width:4;}
+  @media (prefers-reduced-motion:reduce) {*,*::before,*::after {animation:none!important;transition:none!important;}}
 </style>
 </head>
 <body>
@@ -154,29 +135,25 @@
       <feGaussianBlur stdDeviation="4" result="b"/>
       <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
-    <filter id="blur" filterUnits="userSpaceOnUse" x="-400" y="-900" width="3000" height="3000">
-      <feGaussianBlur stdDeviation="16"/>
+    <filter id="glowStrong" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="7" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
-    <radialGradient id="orb" cx="0.35" cy="0.3" r="0.85">
-      <stop offset="0" stop-color="#fff2f9"/>
-      <stop offset="0.45" stop-color="#ff9fd0"/>
-      <stop offset="1" stop-color="#ff5fa8"/>
-    </radialGradient>
-    <linearGradient id="stemFill" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="1">
+    <linearGradient id="stemGrad" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#ff8fc7" stop-opacity="0"/>
-      <stop offset="1" stop-color="#ff8fc7" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#ff8fc7" stop-opacity="0.9"/>
     </linearGradient>
   </defs>
   <g id="world">
     <g id="sparkles"></g>
-    <g id="halo" filter="url(#blur)"></g>
     <g id="branches"></g>
-    <g id="twigs"></g>
+    <g id="blossoms" filter="url(#glow)"></g>
     <g id="nodes"></g>
-    <g id="leafLayer"></g>
+    <g id="bubbleLayer"></g>
   </g>
 </svg>
 
+<a id="notesLink" href="notes.html">Notes ↗</a><div id="hint">Tap a language to explore · scroll to zoom · drag to move</div>
 <div id="controls">
   <button class="cbtn" id="zin" aria-label="Zoom in">+</button>
   <button class="cbtn" id="zout" aria-label="Zoom out">−</button>
@@ -184,11 +161,10 @@
 </div>
 
 <div id="lesson" hidden>
-  <div id="card">
+  <div id="card" role="dialog" aria-modal="true" aria-label="Programming lesson">
     <button class="cbtn" id="close" aria-label="Close">✕</button>
-    <div id="lhead"></div>
-    <div class="row" id="kindPills"></div>
-    <div id="dots"></div>
+    <div class="row" id="langPills"></div>
+    <div class="row kinds" id="kindPills"></div>
     <div id="lbody"></div>
   </div>
 </div>
@@ -197,10 +173,8 @@
 (function () {
 const D = __DATA__;
 const NS = "http://www.w3.org/2000/svg";
-const TL = 64;                          // width reserved for the timeline labels
-const PINK = "#ff8fc7", PALE = "#ffd6ec", DEEP = "#ff5fa8";
-const R = 36;                           // orb radius
-const BLANK = "{{0}}";
+const TL = 64;                 // width reserved for the timeline labels
+const PINK = "#ff8fc7", PALE = "#ffd6ec";
 const $ = id => document.getElementById(id);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
@@ -216,7 +190,7 @@ function H(tag, cls, text) {
   if (text !== undefined) e.textContent = text;
   return e;
 }
-function rng(seed) {
+function rng(seed) {            // small seeded random generator
   return function () {
     seed |= 0; seed = seed + 0x6D2B79F5 | 0;
     let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
@@ -224,169 +198,82 @@ function rng(seed) {
     return ((t ^ t >>> 14) >>> 0) / 4294967296;
   };
 }
-const rand = rng(7);
-const f1 = v => Math.round(v * 10) / 10;
+function bez(p0, p1, p2, p3, t) {
+  const u = 1 - t;
+  return u * u * u * p0 + 3 * u * u * t * p1 + 3 * u * t * t * p2 + t * t * t * p3;
+}
 
 const stage = $("stage"), world = $("world");
-const byId = {}, kids = {};
-D.nodes.forEach(n => { byId[n.id] = n; kids[n.id] = []; });
-D.nodes.forEach(n => { if (n.parent) kids[n.parent].push(n); });
-function sizeOf(n) { return 1 + kids[n.id].reduce((s, c) => s + sizeOf(c), 0); }
-D.nodes.forEach(n => { n.size = sizeOf(n); n.thick = 5.5 + 7.5 * Math.sqrt(n.size); });
-
-/* ================= geometry helpers ================= */
-function bezPt(p0, c1, c2, p3, t) {
-  const u = 1 - t;
-  return {
-    x: u*u*u*p0.x + 3*u*u*t*c1.x + 3*u*t*t*c2.x + t*t*t*p3.x,
-    y: u*u*u*p0.y + 3*u*u*t*c1.y + 3*u*t*t*c2.y + t*t*t*p3.y
-  };
-}
-function sample(p0, c1, c2, p3, steps) {
-  const pts = [];
-  for (let i = 0; i <= steps; i++) pts.push(bezPt(p0, c1, c2, p3, i / steps));
-  return pts;
-}
-// polyline offset by a fraction of the (tapering) width; side = 0 means the centre line
-function edgeLine(pts, w0, w1, frac) {
-  const out = [];
-  const n = pts.length;
-  for (let i = 0; i < n; i++) {
-    const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n - 1, i + 1)];
-    let tx = b.x - a.x, ty = b.y - a.y;
-    const len = Math.hypot(tx, ty) || 1; tx /= len; ty /= len;
-    const w = (w0 + (w1 - w0) * (i / (n - 1))) / 2 * frac;
-    out.push({ x: pts[i].x - ty * w, y: pts[i].y + tx * w });
-  }
-  return out;
-}
-function ribbon(pts, w0, w1) {
-  const L = edgeLine(pts, w0, w1, 1), Rr = edgeLine(pts, w0, w1, -1).reverse();
-  return "M" + L.concat(Rr).map(p => f1(p.x) + "," + f1(p.y)).join("L") + "Z";
-}
-function line(pts) { return "M" + pts.map(p => f1(p.x) + "," + f1(p.y)).join("L"); }
-
-const LEAF_COLORS = [PALE, PINK, "#ffb3d9", "#ff9aa8", PALE];
-function leaf(parent, x, y, ang, s, op) {
-  const e = S("path", {
-    d: "M0,0 C0.28,-0.5 0.78,-0.55 1,0 C0.78,0.55 0.28,0.5 0,0Z",
-    transform: "translate(" + f1(x) + "," + f1(y) + ") rotate(" + f1(ang * 180 / Math.PI) + ") scale(" + f1(s) + ")",
-    fill: LEAF_COLORS[Math.floor(rand() * LEAF_COLORS.length)], "fill-opacity": op
-  }, parent);
-  if (rand() < 0.3) { e.setAttribute("class", "twinkle"); e.style.setProperty("--d", (rand() * 3).toFixed(2) + "s"); }
-  return e;
-}
-function twig(parent, x, y, ang, len, w) {
-  const bend = (rand() - 0.5) * 0.9;
-  const ex = x + Math.cos(ang) * len, ey = y + Math.sin(ang) * len;
-  const cx = x + Math.cos(ang + bend) * len * 0.55, cy = y + Math.sin(ang + bend) * len * 0.55;
-  S("path", { d: "M" + f1(x) + "," + f1(y) + " Q" + f1(cx) + "," + f1(cy) + " " + f1(ex) + "," + f1(ey),
-    fill: "none", stroke: PINK, "stroke-width": w, "stroke-opacity": 0.7, "stroke-linecap": "round" }, parent);
-  const mx = 0.25 * x + 0.5 * cx + 0.25 * ex, my = 0.25 * y + 0.5 * cy + 0.25 * ey;
-  leaf(parent, mx, my, ang + (rand() < 0.5 ? -0.9 : 0.9), 13 + rand() * 7, 0.75);
-  leaf(parent, ex, ey, ang - 0.55, 14 + rand() * 9, 0.85);
-  leaf(parent, ex, ey, ang + 0.55, 12 + rand() * 9, 0.85);
-  leaf(parent, ex, ey, ang, 11 + rand() * 8, 0.9);
-  if (rand() < 0.6) {
-    const c = S("circle", { cx: f1(ex + Math.cos(ang) * 8), cy: f1(ey + Math.sin(ang) * 8), r: 2 + rand() * 2, fill: PALE, class: "twinkle" }, parent);
-    c.style.setProperty("--d", (rand() * 3).toFixed(2) + "s");
-  }
-}
+const byId = {};
+D.nodes.forEach(n => { byId[n.id] = n; });
 
 /* ================= draw the tree ================= */
-const haloG = $("halo"), branchG = $("branches"), twigG = $("twigs");
-const root = D.nodes.find(n => !n.parent);
+const R = 38;
+const rand = rng(11);
 
-// trunk: comes in from above the screen and fades into the sky
-(function () {
-  const top = root.y - 800;
-  const pts = sample({ x: root.x - 6, y: top }, { x: root.x + 18, y: top + 260 }, { x: root.x - 14, y: root.y - 260 }, { x: root.x, y: root.y }, 30);
-  const grad = $("stage").querySelector("#stemFill");
-  grad.setAttribute("y1", top); grad.setAttribute("y2", root.y - 60);
-  S("path", { d: ribbon(pts, root.thick * 1.15, root.thick * 1.0), fill: "url(#stemFill)" }, branchG);
-  S("path", { d: ribbon(pts, root.thick * 2.4, root.thick * 2.1), fill: PINK, "fill-opacity": 0.35 }, haloG);
-})();
+// trunk stem hanging from the top
+const stem = D.stem;
+S("rect", { x: stem.x - 13, y: stem.y1, width: 26, height: stem.y2 - stem.y1, rx: 13, fill: "url(#stemGrad)" }, $("branches"));
 
+// branches: layered strokes so they glow without needing a filter
+const blossoms = $("blossoms");
 D.nodes.filter(n => n.parent).forEach(n => {
   const p = byId[n.parent];
-  const dx = n.x - p.x, dy = n.y - p.y;
-  const j = () => (rand() - 0.5) * 24;
-  const c1 = { x: p.x + dx * 0.55 + j(), y: p.y + dy * 0.2 + j() };
-  const c2 = { x: n.x + j() * 0.5, y: n.y - dy * 0.5 };
-  const pts = sample(p, c1, c2, n, 30);
-  const w0 = n.thick * 1.08, w1 = n.thick * 0.72;
-  S("path", { d: ribbon(pts, w0 * 2.3, w1 * 2.3), fill: PINK, "fill-opacity": 0.32 }, haloG);
-  S("path", { d: ribbon(pts, w0, w1), fill: PINK, "fill-opacity": 0.82 }, branchG);
-  [-0.45, 0.4].forEach(fr => {
-    S("path", { d: line(edgeLine(pts, w0, w1, fr)), fill: "none", stroke: DEEP, "stroke-opacity": 0.45, "stroke-width": 1.4, "stroke-linecap": "round" }, branchG);
+  const dy = n.y - p.y;
+  const c1y = p.y + dy * 0.55, c2y = n.y - dy * 0.45;
+  const d = "M" + p.x + "," + p.y + " C" + p.x + "," + c1y + " " + n.x + "," + c2y + " " + n.x + "," + n.y;
+  const w = Math.max(4, 25 - 5 * (n.depth - 1));
+  const layers = [[w * 2.8, 0.10], [w * 1.8, 0.18], [w, 0.85], [w * 0.3, 0.75]];
+  layers.forEach((l, i) => {
+    S("path", { d: d, fill: "none", stroke: i === 3 ? PALE : PINK, "stroke-width": l[0], "stroke-opacity": l[1], "stroke-linecap": "round" }, $("branches"));
   });
-  S("path", { d: line(edgeLine(pts, w0, w1, 0.05)), fill: "none", stroke: PALE, "stroke-opacity": 0.55, "stroke-width": 2, "stroke-linecap": "round" }, branchG);
-
-  // twigs and leaves growing off the branch
-  let len = 0;
-  for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
-  const count = clamp(Math.floor(len / 80), 1, 6);
-  for (let i = 0; i < count; i++) {
-    const idx = Math.floor((0.3 + 0.5 * (i + rand() * 0.6) / count) * (pts.length - 1));
-    const a = pts[Math.max(0, idx - 1)], b = pts[Math.min(pts.length - 1, idx + 1)];
-    const dir = Math.atan2(b.y - a.y, b.x - a.x);
-    const side = i % 2 === 0 ? 1 : -1;
-    const wAt = (w0 + (w1 - w0) * idx / (pts.length - 1)) / 2;
-    const off = edgeLine(pts, w0, w1, side)[idx];
-    twig(twigG, off.x, off.y, dir + side * (0.75 + rand() * 0.5), 38 + rand() * 46, 3);
-  }
+  // little blossoms along the branch
+  [0.2, 0.4, 0.6, 0.8].forEach(t => {
+    const bx = bez(p.x, p.x, n.x, n.x, t), by = bez(p.y, c1y, c2y, n.y, t);
+    const side = rand() < 0.5 ? -1 : 1;
+    const off = side * (w * 0.9 + 6 + rand() * 14);
+    const r = 2.2 + rand() * 2.6;
+    const c = S("path", { d: "M0 0 Q-5 -18 -22 -17 Q-23 -2 0 0Z", transform: "translate(" + (bx + off) + "," + by + ") rotate(" + (side * 35) + ")", fill: PINK, "fill-opacity": .3, stroke: PALE, "stroke-opacity": .45 }, blossoms);
+    c.style.setProperty("--d", (rand() * 3).toFixed(2) + "s");
+  });
 });
 
-// canopy around the ends of the branches
-D.nodes.filter(n => kids[n.id].length === 0).forEach(n => {
-  for (let i = 0; i < 6; i++) {
-    const ang = -0.15 * Math.PI + (i / 5) * 1.3 * Math.PI + (rand() - 0.5) * 0.3;
-    twig(twigG, n.x + Math.cos(ang) * (R - 6), n.y + Math.sin(ang) * (R - 6), ang, 46 + rand() * 40, 3);
-  }
-});
-// a few twigs at the first fork
-for (let i = 0; i < 4; i++) {
-  const side = i % 2 ? 1 : -1;
-  twig(twigG, root.x + side * 14, root.y - 70 - i * 55, Math.PI / 2 + side * (0.9 + rand() * 0.5), 44 + rand() * 30, 3);
-}
-
-// sparkle dust
-for (let i = 0; i < 90; i++) {
-  const c = S("circle", { cx: f1(-100 + rand() * (D.width + 200)), cy: f1(-200 + rand() * (D.height + 300)), r: f1(0.8 + rand() * 1.6), fill: PALE, class: "twinkle" }, $("sparkles"));
+// background sparkles
+for (let i = 0; i < 70; i++) {
+  const c = S("circle", { cx: rand() * D.width, cy: rand() * D.height, r: 0.8 + rand() * 1.6, fill: PALE, class: "twinkle" }, $("sparkles"));
   c.style.setProperty("--d", (rand() * 3).toFixed(2) + "s");
 }
 
-/* ----- the languages: glowing orbs ----- */
+// language nodes drawn as flowers
 const nodesG = $("nodes");
+const nodeEls = {};
 D.nodes.forEach(n => {
-  const g = S("g", { class: "node", transform: "translate(" + n.x + "," + n.y + ")", "data-id": n.id,
-    tabindex: 0, role: "button", "aria-label": n.name }, nodesG);
-  const body = S("g", { class: "body", filter: "url(#glow)" }, g);
-  const halo = S("circle", { class: "halo", r: R + 16, fill: PINK, "fill-opacity": 0.22 }, body);
-  halo.style.setProperty("--d", (rand() * 3).toFixed(2) + "s");
-  S("circle", { r: R, fill: "url(#orb)", stroke: PALE, "stroke-width": 1.5, "stroke-opacity": 0.8 }, body);
-  S("ellipse", { cx: -11, cy: -15, rx: 13, ry: 7, fill: "#fff", "fill-opacity": 0.45, transform: "rotate(-30 -11 -15)" }, body);
+  const g = S("g", { class: "node", transform: "translate(" + n.x + "," + n.y + ")", "data-id": n.id, filter: "url(#glow)" }, nodesG);
+  g.setAttribute("tabindex", "0");
+  g.setAttribute("role", "button");
+  g.setAttribute("aria-label", n.name + ", " + n.year + ". Explore lessons");
+  S("circle", {r: 47, fill: "none", stroke: PINK, "stroke-opacity": .2}, g);
+  S("circle", { class: "core", r: R }, g);
   S("text", { class: "name" }, g).textContent = n.name;
-  g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); focusNode(n); } });
+  nodeEls[n.id] = g;
 });
 
-/* ----- lesson leaves that appear when you zoom in on an orb ----- */
+// lesson bubbles that appear when you zoom into a language
 const KINDS = [["types", "int", "types"], ["cond", "if", "if / else"], ["loop", "for", "loops"], ["fn", "ƒ", "functions"]];
-const LEAF_ANGLES = [-160, 160, 20, -20];       // degrees, left pair and right pair
-const leafGroups = {};
+const ANGLES = [155, 110, 70, 25];
+const bubbleGroups = {};
 D.nodes.forEach(n => {
-  const g = S("g", { class: "leaves", transform: "translate(" + n.x + "," + n.y + ")" }, $("leafLayer"));
+  const g = S("g", { class: "bubbles", transform: "translate(" + n.x + "," + n.y + ")" }, $("bubbleLayer"));
   KINDS.forEach((k, i) => {
-    const a = LEAF_ANGLES[i] * Math.PI / 180, rad = 112;
-    const lg = S("g", { class: "lesson-leaf", transform: "translate(" + f1(Math.cos(a) * rad) + "," + f1(Math.sin(a) * rad) + ")",
-      "data-node": n.id, "data-kind": k[0], filter: "url(#glow)", role: "button", "aria-label": k[2] }, g);
-    const rot = S("g", { transform: "rotate(" + LEAF_ANGLES[i] + ")" }, lg);
-    S("path", { class: "shape", d: "M-28,0 C-16,-25 16,-25 32,0 C16,25 -16,25 -28,0Z" }, rot);
-    S("path", { class: "rib", d: "M-28,0 L26,0" }, rot);
-    S("text", { class: "glyph", y: -2 }, lg).textContent = k[1];
-    S("text", { class: "lab", y: 38 }, lg).textContent = k[2];
+    const a = ANGLES[i] * Math.PI / 180;
+    const b = S("g", { class: "bubble", transform: "translate(" + (Math.cos(a) * 124).toFixed(1) + "," + (Math.sin(a) * 124 + 6).toFixed(1) + ")", "data-node": n.id, "data-kind": k[0], filter: "url(#glow)" }, g);
+    b.setAttribute("role", "button");
+    b.setAttribute("aria-label", n.name + ": " + k[2]);
+    S("path", {d: "M -32 0 Q -22 -32 12 -23 Q 35 -17 32 0 Q 22 32 -12 23 Q -35 17 -32 0 Z", class: "leaf"}, b);
+    S("text", { class: "glyph" }, b).textContent = k[1];
+    S("text", { class: "lab", y: 35 }, b).textContent = k[2];
   });
-  leafGroups[n.id] = g;
+  bubbleGroups[n.id] = g;
 });
 
 /* ================= timeline ================= */
@@ -400,32 +287,26 @@ const ticks = D.years.map(yy => {
 });
 
 /* ================= pan and zoom ================= */
-let k = 1, tx = 0, ty = 0, fitK = 1, interacted = false, anim = 0;
-let KMIN = 0.1;
-const KMAX = 4;
-const bb = {
-  x0: Math.min.apply(null, D.nodes.map(n => n.x)) - 170, x1: Math.max.apply(null, D.nodes.map(n => n.x)) + 170,
-  y0: Math.min.apply(null, D.nodes.map(n => n.y)) - 150, y1: Math.max.apply(null, D.nodes.map(n => n.y)) + 150
-};
+let k = 1, tx = 0, ty = 0, interacted = false, anim = 0;
+const KMIN = 0.05, KMAX = 4;
 
 function apply() {
   world.setAttribute("transform", "translate(" + tx + "," + ty + ") scale(" + k + ")");
-  const hh = innerHeight;
+  const H_ = innerHeight;
   ticks.forEach(t => {
     const sy = ty + t.y * k;
     t.el.style.transform = "translateY(" + sy + "px)";
-    t.el.style.display = (sy < -20 || sy > hh + 20) ? "none" : "block";
+    t.el.style.display = (sy < -20 || sy > H_ + 20) ? "none" : "block";
   });
-  updateLeaves();
+  updateBubbles();
 }
 function center() { return { x: TL + (innerWidth - TL) / 2, y: innerHeight / 2 }; }
 function fit() {
-  const pad = 10;
-  fitK = Math.min((innerWidth - TL - pad * 2) / (bb.x1 - bb.x0), (innerHeight - pad * 2) / (bb.y1 - bb.y0));
-  KMIN = fitK * 0.4;
-  k = fitK;
-  tx = TL + (innerWidth - TL - (bb.x1 - bb.x0) * k) / 2 - bb.x0 * k;
-  ty = (innerHeight - (bb.y1 - bb.y0) * k) / 2 - bb.y0 * k;
+  const pad = 16;
+  const kk = Math.min((innerWidth - TL - pad * 2) / D.width, (innerHeight - pad * 2) / D.height);
+  k = clamp(kk, KMIN, KMAX);
+  tx = TL + (innerWidth - TL - D.width * k) / 2;
+  ty = (innerHeight - D.height * k) / 2;
   apply();
 }
 function zoomAt(cx, cy, f) {
@@ -447,14 +328,12 @@ function animateTo(tk, ttx, tty, ms) {
   })(t0);
 }
 function focusNode(n) {
-  const c = center();
-  const fk = Math.max(fitK * 1.9, Math.min(2.4, (Math.min(innerWidth - TL, innerHeight) / 2 - 30) / 150));
-  interacted = true;
-  animateTo(fk, c.x - n.x * fk, c.y - n.y * fk, 550);
+  const c = center(), tk = Math.min(2.4, (innerWidth - TL - 24) / 330, (innerHeight - 60) / 260);
+  animateTo(tk, c.x - n.x * tk, c.y - n.y * tk, 550);
 }
-function updateLeaves() {
+function updateBubbles() {
   let best = null, bd = 1e9;
-  if (k >= fitK * 1.7) {
+  if (k >= Math.min(1.4, (innerWidth - TL - 24) / 350)) {
     const c = center();
     D.nodes.forEach(n => {
       const d = Math.hypot(tx + n.x * k - c.x, ty + n.y * k - c.y);
@@ -462,7 +341,11 @@ function updateLeaves() {
     });
     if (bd > Math.min(innerWidth, innerHeight) * 0.5) best = null;
   }
-  D.nodes.forEach(n => leafGroups[n.id].classList.toggle("show", !!best && best.id === n.id));
+  D.nodes.forEach(n => {
+    const show = !!best && best.id === n.id;
+    bubbleGroups[n.id].classList.toggle("show", show);
+    bubbleGroups[n.id].querySelectorAll(".bubble").forEach(b => b.setAttribute("tabindex", show ? "0" : "-1"));
+  });
 }
 
 stage.addEventListener("wheel", e => {
@@ -476,7 +359,7 @@ stage.addEventListener("wheel", e => {
 const ptrs = new Map();
 let moved = 0, downTarget = null;
 stage.addEventListener("pointerdown", e => {
-  try { stage.setPointerCapture(e.pointerId); } catch (err) {}
+  stage.setPointerCapture(e.pointerId);
   ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (ptrs.size === 1) { moved = 0; downTarget = e.target; } else { moved = 99; }
   interacted = true; anim++;
@@ -497,7 +380,7 @@ stage.addEventListener("pointermove", e => {
     p.x = e.clientX; p.y = e.clientY;
     const nd = Math.hypot(p.x - other.x, p.y - other.y);
     const mx = (p.x + other.x) / 2, my = (p.y + other.y) / 2;
-    if (pd > 0) zoomAt(mx, my, nd / pd);
+    if (pd > 0) zoomAt(pmx, pmy, nd / pd);
     tx += mx - pmx; ty += my - pmy;
     apply();
   }
@@ -512,176 +395,184 @@ stage.addEventListener("pointercancel", e => endPointer(e, true));
 
 function tap(target) {
   if (!target || !target.closest) return;
-  const lf = target.closest(".lesson-leaf");
-  if (lf) { openLesson(lf.getAttribute("data-node"), lf.getAttribute("data-kind")); return; }
+  const b = target.closest(".bubble");
+  if (b) { openLesson(b.getAttribute("data-node"), b.getAttribute("data-kind")); return; }
   const nd = target.closest(".node");
   if (nd) focusNode(byId[nd.getAttribute("data-id")]);
 }
 
-$("zin").onclick = () => { const c = center(); interacted = true; anim++; zoomAt(c.x, c.y, 1.4); apply(); };
-$("zout").onclick = () => { const c = center(); interacted = true; anim++; zoomAt(c.x, c.y, 1 / 1.4); apply(); };
+stage.addEventListener("keydown", e => {
+  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tap(e.target); }
+});
+$("zin").onclick = () => { anim++; const c = center(); interacted = true; zoomAt(c.x, c.y, 1.4); apply(); };
+$("zout").onclick = () => { anim++; const c = center(); interacted = true; zoomAt(c.x, c.y, 1 / 1.4); apply(); };
 $("zfit").onclick = () => { interacted = false; anim++; fit(); };
-addEventListener("resize", () => { if (!interacted) fit(); else { fitK = Math.min((innerWidth - TL - 20) / (bb.x1 - bb.x0), (innerHeight - 20) / (bb.y1 - bb.y0)); KMIN = fitK * 0.4; apply(); } });
+addEventListener("resize", () => { if (!interacted) fit(); else apply(); });
 
-/* ================= lessons: predict, then see ================= */
+/* ================= lessons ================= */
 const lessonEl = $("lesson"), lbody = $("lbody");
-let cur = { lang: null, kind: null, i: 0 };
+let cur = { lang: null, kind: null }, timer = null;
+
+function fill(t, v) { return t.replace(/\{(N|M|a|b|r|v)\}/g, (m, key) => String(v[key])); }
+function pop(el) { el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop"); }
+function stopAuto() { if (timer) { clearInterval(timer); timer = null; } }
+
+function codeBlock(n) {
+  const pre = H("pre", "code");
+  const els = [];
+  for (let i = 0; i < n; i++) { const d = H("div", "ln", " "); pre.appendChild(d); els.push(d); }
+  return { pre: pre, els: els };
+}
+function setLine(el, text) { el.textContent = text === "" ? " " : text; }
+function stepper(min, max, val, onChange) {
+  const w = H("div", "stepper");
+  const dec = H("button", "sbtn", "−"), out = H("span", "sval", String(val)), inc = H("button", "sbtn", "+");
+  let v = val;
+  function set(nv) { v = clamp(nv, min, max); out.textContent = v; onChange(v); }
+  dec.onclick = () => set(v - 1);
+  inc.onclick = () => set(v + 1);
+  w.append(dec, out, inc);
+  return { el: w, get: () => v };
+}
 
 function openLesson(lang, kind) {
-  cur = { lang: lang, kind: kind, i: 0 };
+  cur = { lang: lang, kind: kind };
   lessonEl.hidden = false;
   renderLesson();
+  $("close").focus();
 }
-function closeLesson() { lessonEl.hidden = true; }
+function closeLesson() { stopAuto(); lessonEl.hidden = true; if(cur.lang) nodeEls[cur.lang].focus(); }
 $("close").onclick = closeLesson;
 lessonEl.addEventListener("click", e => { if (e.target === lessonEl) closeLesson(); });
-addEventListener("keydown", e => { if (e.key === "Escape") closeLesson(); });
+addEventListener("keydown", e => {
+  if(lessonEl.hidden)return;
+  if(e.key==="Escape")closeLesson();
+  if(e.key==="Tab"){
+    const items=[...$("card").querySelectorAll("button:not(:disabled), input")];
+    const first=items[0],last=items[items.length-1];
+    if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+    else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+  }
+});
 
 function renderLesson() {
-  const list = D.lessons[cur.lang][cur.kind];
-  const lang = D.langs.find(l => l.id === cur.lang);
-
-  const head = $("lhead");
-  head.replaceChildren(H("div", "mini"), H("h2", "", lang.name));
-
-  const kp = $("kindPills");
-  kp.replaceChildren();
+  stopAuto();
+  const lp = $("langPills"), kp = $("kindPills");
+  lp.replaceChildren(); kp.replaceChildren(); lbody.replaceChildren();
+  lp.appendChild(H("h2", "", byId[cur.lang].name));
+  lbody.appendChild(H("p", "goal", {
+    types: "A type tells you what kind of value a variable stores.",
+    cond: "An if/else checks a condition and runs one of two branches.",
+    loop: "A loop repeats an instruction. Watch the counter change each time.",
+    fn: "A function is a reusable piece of code. This one takes two inputs and returns their sum."
+  }[cur.kind]));
   KINDS.forEach(kk => {
     const b = H("button", "chip" + (kk[0] === cur.kind ? " on" : ""), kk[2]);
-    b.onclick = () => { cur.kind = kk[0]; cur.i = 0; renderLesson(); };
+    b.onclick = () => { cur.kind = kk[0]; renderLesson(); };
     kp.appendChild(b);
   });
-
-  const dots = $("dots");
-  dots.replaceChildren();
-  list.forEach((_, j) => dots.appendChild(H("span", "dot" + (j < cur.i ? " done" : j === cur.i ? " here" : ""))));
-
-  lbody.replaceChildren();
-  if (cur.i >= list.length) renderDone(); else renderExercise(list[cur.i], list.length);
+  const L = D.lessons[cur.lang];
+  if (cur.kind === "loop") renderLoop(L.loop);
+  else if (cur.kind === "fn") renderFn(L.fn);
+  else if (cur.kind === "cond") renderCond(L.cond);
+  else renderTypes(L.types);
 }
 
-function renderDone() {
-  const wrap = H("div", "done-card");
-  wrap.append(H("div", "check", "✓"), H("div", "nice", "Nice!"));
-  const acts = H("div", "actions");
-  const idx = KINDS.findIndex(kk => kk[0] === cur.kind);
-  if (idx < KINDS.length - 1) {
-    const nxt = H("button", "big", "Next: " + KINDS[idx + 1][2] + " →");
-    nxt.onclick = () => { cur.kind = KINDS[idx + 1][0]; cur.i = 0; renderLesson(); };
-    acts.appendChild(nxt);
+function prediction(question, check, reveal) {
+  const box = H("div");
+  const label = H("label", "question", question);
+  const input = H("input", "answer"); input.type = "text";
+  input.id = "prediction"; label.htmlFor = input.id;
+  const button = H("button", "big", "Check & see");
+  const feedback = H("p", "feedback", "Make a prediction, then see what the code does.");
+  feedback.setAttribute("aria-live", "polite");
+  function submit() {
+    if (!input.value.trim()) { feedback.textContent = "Enter a prediction first."; return; }
+    const r = check(input.value.trim());
+    feedback.textContent = (r.correct ? "You got it! " : "Let's trace it. ") + r.text;
+    reveal();
   }
-  const again = H("button", "big ghost", "↺ Again");
-  again.onclick = () => { cur.i = 0; renderLesson(); };
-  acts.appendChild(again);
-  wrap.appendChild(acts);
-  lbody.appendChild(wrap);
+  button.onclick = submit;
+  input.onkeydown = e => { if (e.key === "Enter") submit(); };
+  box.append(label, input, H("div", "controls"), feedback);
+  box.children[2].append(button);
+  return {el: box, reset() {input.value="";feedback.textContent="Inputs changed. Make a new prediction.";}};
 }
 
-function simulate(sim, tile) {
-  const el = H("div", "sim");
-  let msg = "";
-  if (sim.kind === "range") {
-    const b = Number(tile);
-    const last = sim.inclusive ? b : b - 1;
-    el.appendChild(H("span", "simlabel", "prints"));
-    const count = Math.max(0, last + 1);
-    for (let j = 0; j < Math.min(count, 10); j++) {
-      const bd = H("span", "badge", String(j));
-      bd.style.animationDelay = (j * 90) + "ms";
-      el.appendChild(bd);
-    }
-    if (count === 0) el.appendChild(H("span", "badge bad", "nothing"));
-    msg = (count === 0 ? "Prints nothing." : "Prints 0 to " + last + ".") + " We want 0 to " + (sim.expect - 1) + ".";
-  } else if (sim.kind === "cond") {
-    const test = { ">=": a => a >= 18, ">": a => a > 18, "<": a => a < 18, "==": a => a === 18 }[tile];
-    let first = null;
-    [16, 18, 20].forEach((age, j) => {
-      const got = test(age) ? "Adult" : "Minor", want = age >= 18 ? "Adult" : "Minor";
-      const ok = got === want;
-      if (!ok && !first) first = "Age " + age + " gives " + got + ". It should be " + want + ".";
-      const bd = H("span", "badge " + (ok ? "good" : "bad"), "age " + age + " → " + got + (ok ? " ✓" : " ✗"));
-      bd.style.animationDelay = (j * 120) + "ms";
-      el.appendChild(bd);
+function renderLoop(spec) {
+  let N=4, s=-1, unlocked=false;
+  const cb=codeBlock(spec.lines.length), stat=H("div","stat"), outputs=H("div","stat");
+  const counter=H("span","badge","i = ?"), explanation=H("p","explain");
+  const next=H("button","big","Step ▶"), auto=H("button","big ghost","Auto"), reset=H("button","big ghost","Reset");
+  const pred=prediction("What numbers will this loop print, in order?", value => {
+    const expected=Array.from({length:N},(_,i)=>String(i));
+    return {correct:value.split(/[\s,]+/).join(" ")===expected.join(" "),
+      text:"Output: " + expected.join(", ") + ". It starts at 0 and stops before " + N + ". Step through to see why."};
+  },()=>{unlocked=true;next.disabled=auto.disabled=false;});
+  function paint() {
+    spec.lines.forEach((t,i)=>setLine(cb.els[i],fill(t,{N,M:N-1})));
+    cb.els.forEach(e=>e.classList.remove("hot"));
+    let count=0;
+    if(s<0){counter.textContent="i = ?";explanation.textContent="Predict the output first. Then follow each highlighted line.";}
+    else if(s<2*N){const i=Math.floor(s/2);counter.textContent="i = "+i;count=i+(s%2);
+      cb.els[s%2 ? spec.body : spec.header].classList.add("hot");
+      explanation.textContent=s%2 ? "Print the current value of i: "+i+"." :
+        "Counter i is "+i+". It is in the loop's range, so run the body.";
+    } else {count=N;counter.textContent="finished";explanation.textContent="The next counter value would be "+N+", outside the range. The loop stops.";}
+    outputs.replaceChildren();for(let i=0;i<count;i++)outputs.append(H("span","badge out",String(i)));
+    next.disabled=auto.disabled=!unlocked || s>=2*N;
+  }
+  function step(){if(s>=2*N)return;s++;paint();if(s>=2*N){stopAuto();auto.textContent="Auto";}}
+  next.onclick=()=>{stopAuto();auto.textContent="Auto";step();};
+  auto.onclick=()=>{if(timer){stopAuto();auto.textContent="Auto";}else{auto.textContent="Pause";step();if(s<2*N)timer=setInterval(step,850);}};
+  reset.onclick=()=>{stopAuto();auto.textContent="Auto";s=-1;paint();};
+  const count=stepper(1,6,N,v=>{stopAuto();N=v;s=-1;unlocked=false;pred.reset();auto.textContent="Auto";paint();});
+  const controls=H("div","controls");controls.append(H("span","","Repeat count"),count.el,next,auto,reset);
+  stat.append(counter);lbody.append(cb.pre,pred.el,stat,outputs,explanation,controls);paint();
+}
+
+function renderFn(spec) {
+  let a=3,b=4;
+  const cb=codeBlock(spec.lines.length), result=H("span","badge out","Output: ?");
+  const explanation=H("p","explain", "a and b are input names. The return expression sends a + b back to the caller.");
+  const pred=prediction("What value will add return?", value=>({correct:/^\d+$/.test(value)&&Number(value)===a+b,
+    text:"add("+a+", "+b+") returns "+(a+b)+": "+a+" + "+b+" = "+(a+b)+"."}),()=>{
+      result.textContent="Output: "+(a+b);cb.els[spec.call].classList.add("hot");
+      explanation.textContent="The call passes "+a+" into a and "+b+" into b. The function returns their sum; the print instruction displays it.";
     });
-    msg = first || "";
-  } else if (sim.kind === "fn") {
-    const r = { "+": 5, "-": -1, "*": 6 }[tile];
-    const ok = r === 5;
-    el.appendChild(H("span", "badge", "add(2, 3)"));
-    el.appendChild(H("span", "simlabel", "→"));
-    el.appendChild(H("span", "badge " + (ok ? "good" : "bad"), String(r)));
-    msg = "add(2, 3) gives " + r + ". We want 5.";
-  }
-  return { el: el, msg: msg };
+  function paint(){spec.lines.forEach((t,i)=>setLine(cb.els[i],fill(t,{a,b})));cb.els.forEach(e=>e.classList.remove("hot"));result.textContent="Output: ?";pred.reset();}
+  const inputs=H("div","controls");inputs.append(H("span","","a"),stepper(0,9,a,v=>{a=v;paint();}).el,H("span","","b"),stepper(0,9,b,v=>{b=v;paint();}).el);
+  lbody.append(inputs,cb.pre,pred.el,result,explanation);paint();
 }
 
-function renderExercise(ex, total) {
-  let solved = false, misses = 0;
-  lbody.appendChild(H("p", "goal", ex.goal));
-
-  const pre = H("pre", "code");
-  const slot = H("span", "slot", "?");
-  ex.lines.forEach(line => {
-    const d = H("div", "ln");
-    const parts = line.split(BLANK);
-    parts.forEach((txt, j) => {
-      if (j > 0) d.appendChild(slot);
-      if (txt) d.appendChild(document.createTextNode(txt));
+function renderCond(spec) {
+  let age=16;
+  const cb=codeBlock(spec.lines.length), out=H("span","badge out","Output: ?");
+  const pred=prediction("Will this print Adult or Minor?",value=>({correct:value.toLowerCase()===(age>=18?"adult":"minor"),
+    text:"age >= 18 is "+(age>=18?"true":"false")+" for age "+age+". Only the "+(age>=18?"if":"else")+" branch runs."}),()=>{
+      const adult=age>=18;out.textContent="Output: "+(adult?"Adult":"Minor");
+      cb.els.forEach((e,i)=>{e.classList.toggle("hot",i===(adult?spec.then:spec.else));e.classList.toggle("dim",i===(adult?spec.else:spec.then));});
     });
-    if (!line) d.textContent = " ";
-    pre.appendChild(d);
-  });
-  lbody.appendChild(pre);
+  const slider=H("input","slider");slider.type="range";slider.min=10;slider.max=25;slider.value=age;slider.id="age";
+  const label=H("label","","Age: 16");label.htmlFor="age";
+  function paint(){spec.lines.forEach((t,i)=>setLine(cb.els[i],fill(t,{v:age})));cb.els.forEach(e=>e.classList.remove("hot","dim"));out.textContent="Output: ?";label.textContent="Age: "+age;pred.reset();}
+  slider.oninput=()=>{age=Number(slider.value);paint();};
+  const controls=H("div","controls");controls.append(label,slider);
+  lbody.append(controls,cb.pre,pred.el,out,H("p","explain","Try age 17, then 18. The >= sign means greater than or equal to, so 18 takes the Adult branch."));paint();
+}
 
-  const tiles = H("div", "tiles");
-  const btns = ex.tiles.map(t => {
-    const b = H("button", "tile", t);
-    b.onclick = () => pick(t, b);
-    tiles.appendChild(b);
-    return b;
-  });
-  lbody.appendChild(tiles);
-
-  const fb = H("div"); fb.id = "fb";
-  const actions = H("div", "actions");
-  lbody.append(fb, actions);
-
-  function pick(tile, btn) {
-    if (solved) return;
-    const ok = tile === ex.answer;
-    slot.textContent = tile;
-    slot.className = "slot filled " + (ok ? "ok" : "bad");
-    btns.forEach(b => { b.className = "tile"; });
-    btn.className = "tile sel " + (ok ? "ok" : "bad");
-    fb.replaceChildren();
-    let msg;
-    if (ex.sim) {
-      const r = simulate(ex.sim, tile);
-      fb.appendChild(r.el);
-      msg = ok ? ex.note : (r.msg || ex.wrong[tile] || "Not quite. Try another.");
-    } else {
-      msg = ok ? ex.note : (ex.wrong[tile] || "Not quite. Try another.");
-    }
-    fb.appendChild(H("p", "msg " + (ok ? "good" : "oops"), (ok ? "✓ " : "✗ ") + msg));
-    actions.replaceChildren();
-    if (ok) {
-      solved = true;
-      btns.forEach(b => { b.disabled = true; });
-      const dotEls = $("dots").children;
-      if (dotEls[cur.i]) dotEls[cur.i].className = "dot done";
-      const last = cur.i === total - 1;
-      const nx = H("button", "big", last ? "Finish ✓" : "Next →");
-      nx.onclick = () => { cur.i++; renderLesson(); };
-      actions.appendChild(nx);
-    } else {
-      misses++;
-      if (misses >= 2) {
-        const sh = H("button", "big ghost", "Show answer");
-        sh.onclick = () => pick(ex.answer, btns[ex.tiles.indexOf(ex.answer)]);
-        actions.appendChild(sh);
-      }
-    }
+function renderTypes(decls) {
+  const values=["42","3.14","'A'","true"];
+  const descriptions=["Whole number: a count, like 42 students.","Decimal number: a measurement, like 3.14 meters.","Character: one character, like the letter A.","Boolean: true or false, like whether a light is on."];
+  let sel=0;const chips=H("div","chips4"), cb=codeBlock(decls.length), explanation=H("p","feedback");
+  function paint(){decls.forEach((d,i)=>{const line=cb.els[i];line.replaceChildren();const at=d[0].indexOf(d[1]);
+    if(i===sel&&at>=0){line.append(document.createTextNode(d[0].slice(0,at)),H("span","tok",d[1]),document.createTextNode(d[0].slice(at+d[1].length)));}else line.textContent=d[0];
+    line.classList.toggle("hot",i===sel);line.classList.toggle("dim",i!==sel);
+  });[...chips.children].forEach((c,i)=>{c.classList.toggle("on",i===sel);c.setAttribute("aria-pressed",i===sel);});
+    explanation.textContent=descriptions[sel]+" In "+byId[cur.lang].name+", this example uses "+decls[sel][1]+". The variable name labels the stored value.";
   }
+  values.forEach((v,i)=>{const b=H("button","val",v);b.onclick=()=>{sel=i;paint();};chips.append(b);});
+  lbody.append(H("p","explain","Tap a value to see its type and what it can store."),chips,cb.pre,explanation);paint();
 }
 
 fit();
