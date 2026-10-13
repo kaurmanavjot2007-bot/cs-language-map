@@ -1,95 +1,88 @@
 """Build the static site: reads the data, computes the tree layout, and
-writes docs/index.html (the folder GitHub Pages can serve).
+writes docs/index.html (the folder GitHub Pages serves).
 
 Run:  python build.py
+To add another family later, add its name to FAMILIES_SHOWN and give each
+of its languages an entry in lessons.py.
 """
 import json
 import os
 
-from concepts import CODE, CONCEPTS, FAMILY_COLORS
 from languages import LANGUAGES, validate
+from lessons import LESSONS
 
-SLOT = 150    # horizontal space per leaf node
-ROW = 135     # vertical space per tree level
-TOP = 135     # y of the first level
-LEFT = 40
-GAP = 0.3     # gap between family regions, in slots
+FAMILIES_SHOWN = ["ALGOL"]
+
+SLOT = 240        # horizontal space per leaf
+PX_PER_YEAR = 20  # the timeline: vertical space per year
+TOP_PAD = 190     # room above the oldest language for the trunk stem
+SIDE_PAD = 130
+BOTTOM_PAD = 170
 
 
 def layout(languages):
-    by_id = {lang["id"]: lang for lang in languages}
     children = {}
     for lang in languages:
         children.setdefault(lang["parent"], []).append(lang)
     for kids in children.values():
         kids.sort(key=lambda l: l["year"])
 
-    pos = {}  # id -> (x in slots, depth)
+    pos = {}
+    depth_of = {}
 
     def place(node_id, depth, x0):
+        depth_of[node_id] = depth
         kids = children.get(node_id, [])
         if not kids:
-            pos[node_id] = (x0 + 0.5, depth)
+            pos[node_id] = x0 + 0.5
             return 1
         cursor = x0
         for kid in kids:
             cursor += place(kid["id"], depth + 1, cursor)
-        pos[node_id] = ((pos[kids[0]["id"]][0] + pos[kids[-1]["id"]][0]) / 2, depth)
+        pos[node_id] = (pos[kids[0]["id"]] + pos[kids[-1]["id"]]) / 2
         return cursor - x0
 
-    # Families ordered by the year of their oldest language
-    first_year = {}
-    for lang in languages:
-        first_year[lang["family"]] = min(first_year.get(lang["family"], 9999), lang["year"])
-    families = sorted(first_year, key=lambda f: first_year[f])
+    cursor = 0
+    for root in children.get(None, []):
+        cursor += place(root["id"], 0, cursor)
 
-    cursor = 0.0
-    regions = []
-    for fam in families:
-        start = cursor
-        roots = [l for l in children.get(None, []) if l["family"] == fam]
-        for root in roots:
-            cursor += place(root["id"], 0, cursor)
-        regions.append({"family": fam, "start": start, "end": cursor})
-        cursor += GAP
-
-    max_depth = max(d for _, d in pos.values())
-    width = LEFT * 2 + (cursor - GAP) * SLOT
-    height = TOP + max_depth * ROW + 110
+    first = min(l["year"] for l in languages)
+    last = max(l["year"] for l in languages)
+    width = round(cursor * SLOT + SIDE_PAD * 2)
+    height = round(TOP_PAD + (last - first) * PX_PER_YEAR + BOTTOM_PAD)
 
     nodes = []
-    for lang in languages:
-        sx, depth = pos[lang["id"]]
-        label, code = CODE[lang["id"]]
+    for lang in sorted(languages, key=lambda l: l["year"]):
         nodes.append({
-            **lang,
-            "x": round(LEFT + sx * SLOT),
-            "y": TOP + depth * ROW,
-            "color": FAMILY_COLORS[lang["family"]],
-            "concepts": [{"label": a, "text": b} for a, b in CONCEPTS[lang["id"]]],
-            "codeLang": label,
-            "code": code,
+            "id": lang["id"], "name": lang["name"], "year": lang["year"],
+            "parent": lang["parent"], "depth": depth_of[lang["id"]],
+            "x": round(SIDE_PAD + pos[lang["id"]] * SLOT),
+            "y": round(TOP_PAD + (lang["year"] - first) * PX_PER_YEAR),
         })
 
-    region_out = [{
-        "family": r["family"],
-        "color": FAMILY_COLORS[r["family"]],
-        "x": round(LEFT + r["start"] * SLOT - 10),
-        "w": round((r["end"] - r["start"]) * SLOT + 20),
-    } for r in regions]
-
-    return {"width": round(width), "height": round(height), "nodes": nodes, "regions": region_out}
+    years = sorted({n["year"] for n in nodes})
+    root = next(n for n in nodes if n["parent"] is None)
+    return {
+        "width": width, "height": height, "nodes": nodes,
+        "years": [{"year": y, "y": TOP_PAD + (y - first) * PX_PER_YEAR} for y in years],
+        "stem": {"x": root["x"], "y1": 0, "y2": root["y"]},
+        "langs": [{"id": n["id"], "name": n["name"]} for n in nodes],
+    }
 
 
 def main():
-    problems = validate(LANGUAGES)
+    shown = [l for l in LANGUAGES if l["family"] in FAMILIES_SHOWN]
+    problems = validate(shown)
     if problems:
         raise SystemExit("Fix the data first: " + "; ".join(problems))
-    missing = [l["id"] for l in LANGUAGES if l["id"] not in CONCEPTS or l["id"] not in CODE]
-    if missing:
-        raise SystemExit("Missing concepts/code for: " + ", ".join(missing))
+    for lang in shown:
+        lesson = LESSONS.get(lang["id"])
+        if not lesson or not all(k in lesson for k in ("types", "cond", "loop", "fn")):
+            raise SystemExit(f"Missing lessons for {lang['id']} in lessons.py")
 
-    data = layout(LANGUAGES)
+    data = layout(shown)
+    data["lessons"] = {l["id"]: LESSONS[l["id"]] for l in shown}
+
     with open("template.html", encoding="utf-8") as f:
         html = f.read()
     payload = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
