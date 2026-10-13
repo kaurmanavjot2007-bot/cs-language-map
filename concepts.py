@@ -1,92 +1,96 @@
-"""Step 2: what shows up when someone clicks a language.
+"""Lesson content: the same four ideas (types, if/else, loops, functions)
+written in each language's own syntax.
 
-Each language gets four "concept bubbles" (short, easy-words explanations)
-and the same tiny task in code: print the numbers 0 to 4.
+Placeholders the page fills in while you play:
+  {N} loop count, {M} = N-1, {a} {b} function inputs, {v} the age value.
 """
 
-# Soft pink / lavender / peach / mint / sky / coral palette
-FAMILY_COLORS = {
-    "Fortran": "#ffb38a",    # peach
-    "Lisp": "#c3a6ff",       # lavender
-    "ALGOL": "#ff8fc7",      # pink
-    "Smalltalk": "#7fe0c8",  # mint
-    "ML": "#8cc9ff",         # sky blue
-    "Scripting": "#ff9aa8",  # coral rose
-}
 
-CONCEPTS = {
-    "fortran": [
-        ("Memory", "Arrays of numbers sit in fixed blocks of memory, which makes number crunching very fast."),
-        ("Types", "Every variable has a set type, like integer or real (a decimal number)."),
-        ("Style", "Procedural: you write step-by-step instructions and group them into subroutines."),
-        ("Big idea", "Let scientists write math-like code instead of machine code."),
-    ],
-    "lisp": [
-        ("Memory", "Memory is cleaned up for you automatically. Lisp was one of the first languages to do this (garbage collection)."),
-        ("Types", "Types are checked while the program runs, not before (dynamic typing)."),
-        ("Style", "Functional: functions can be passed around like any other value, and code is written as lists."),
-        ("Big idea", "Code is data, so programs can write and change other programs."),
-    ],
-    "algol": [
-        ("Memory", "Variables live inside a block and disappear when the block ends."),
-        ("Types", "Variables have types like integer, real, and boolean."),
-        ("Style", "Structured: begin...end blocks, loops, and if/else instead of jumping around."),
-        ("Big idea", "Blocks and scope. Nearly every later language copied this."),
-    ],
-    "c": [
-        ("Memory", "You ask for memory and give it back yourself, using pointers."),
-        ("Types", "Types are checked before the program runs, but you can cast your way around them."),
-        ("Style", "Procedural: small, simple, and close to the hardware."),
-        ("Big idea", "Fast enough to write operating systems, portable enough to run almost anywhere."),
-    ],
-    "smalltalk": [
-        ("Memory", "Everything is an object, and unused objects are cleaned up automatically."),
-        ("Types", "Dynamic: an object decides at runtime how to respond to a message."),
-        ("Style", "Pure object-oriented: all you do is send messages to objects."),
-        ("Big idea", "A program is a bunch of objects talking to each other."),
-    ],
-    "cpp": [
-        ("Memory", "Manual like C, but tools like destructors and smart pointers help clean up for you."),
-        ("Types", "Static types with classes and templates (code that works with many types)."),
-        ("Style", "Multi-paradigm: procedural, object-oriented, and generic code all in one language."),
-        ("Big idea", "C's speed, plus classes to organize big programs."),
-    ],
-    "haskell": [
-        ("Memory", "Memory is cleaned up automatically, and data is immutable by default (it does not change)."),
-        ("Types", "Static and strong, and the compiler can often figure out types for you (type inference)."),
-        ("Style", "Purely functional: functions have no hidden side effects, and values are computed only when needed (lazy)."),
-        ("Big idea", "Write programs like math, so they are easier to reason about."),
-    ],
-    "java": [
-        ("Memory", "A garbage collector frees memory for you automatically."),
-        ("Types", "Static types, and all code lives inside classes."),
-        ("Style", "Object-oriented, with C++-style syntax."),
-        ("Big idea", "Compile once to bytecode, then run it on any machine with a Java Virtual Machine."),
-    ],
-    "rust": [
-        ("Memory", "Ownership rules free memory safely at compile time, with no garbage collector."),
-        ("Types", "Static and strong, with type inference."),
-        ("Style", "Multi-paradigm: systems-level control with some functional ideas."),
-        ("Big idea", "As fast as C++, but the compiler blocks whole kinds of memory bugs."),
-    ],
-    "python": [
-        ("Memory", "Automatic: Python counts references to objects and cleans up the ones nobody uses."),
-        ("Types", "Dynamic: types are checked while running (optional type hints exist)."),
-        ("Style", "Multi-paradigm, with indentation that forces readable code."),
-        ("Big idea", "Code should be easy to read and quick to write."),
-    ],
-}
+def _loop(header, body, *rest):
+    return {"lines": [header, body, *rest], "header": 0, "body": 1}
 
-# The same task in every language: print the numbers 0 to 4.
-CODE = {
-    "fortran": ("Fortran", "do i = 0, 4\n  print *, i\nend do"),
-    "lisp": ("Common Lisp", "(dotimes (i 5)\n  (print i))"),
-    "algol": ("ALGOL 68", "FOR i FROM 0 TO 4 DO\n  print((i, newline))\nOD"),
-    "c": ("C", "for (int i = 0; i < 5; i++) {\n    printf(\"%d\\n\", i);\n}"),
-    "smalltalk": ("Smalltalk", "0 to: 4 do: [:i |\n    Transcript showCr: i printString]"),
-    "cpp": ("C++", "for (int i = 0; i < 5; i++) {\n    std::cout << i << \"\\n\";\n}"),
-    "haskell": ("Haskell", "mapM_ print [0..4]"),
-    "java": ("Java", "for (int i = 0; i < 5; i++) {\n    System.out.println(i);\n}"),
-    "rust": ("Rust", "for i in 0..5 {\n    println!(\"{}\", i);\n}"),
-    "python": ("Python", "for i in range(5):\n    print(i)"),
+
+def _clike_loop(print_stmt):
+    return {"lines": ["for (int i = 0; i < {N}; i++) {", "  " + print_stmt, "}"],
+            "header": 0, "body": 1}
+
+
+def _clike_fn(sig, call):
+    return {"lines": [sig, "  return a + b;", "}", call], "call": 3}
+
+
+def _clike_cond(adult, minor):
+    return {"lines": ["int age = {v};", "if (age >= 18) {", "  " + adult, "} else {", "  " + minor, "}"],
+            "then": 2, "else": 4}
+
+
+def _clike_types(t_int, t_float, t_char, t_bool):
+    return [
+        (f"{t_int} n = 42;", t_int),
+        (f"{t_float} x = 3.14;", t_float),
+        (f"{t_char} c = 'A';", t_char),
+        (f"{t_bool} ok = true;", t_bool),
+    ]
+
+
+LESSONS = {
+    "algol": {
+        "loop": _loop("FOR i FROM 0 TO {M} DO", "  print((i, newline))", "OD"),
+        "fn": {"lines": ["PROC add = (INT a, b) INT: a + b;", "print((add({a}, {b}), newline))"], "call": 1},
+        "cond": {"lines": ["INT age = {v};", "IF age >= 18", "THEN print((\"Adult\", newline))",
+                           "ELSE print((\"Minor\", newline))", "FI"], "then": 2, "else": 3},
+        "types": [("INT n = 42;", "INT"), ("REAL x = 3.14;", "REAL"),
+                  ("CHAR c = \"A\";", "CHAR"), ("BOOL ok = TRUE;", "BOOL")],
+    },
+    "pascal": {
+        "loop": _loop("for i := 0 to {M} do", "  writeln(i);"),
+        "fn": {"lines": ["function add(a, b: integer): integer;", "begin", "  add := a + b;", "end;",
+                         "writeln(add({a}, {b}));"], "call": 4},
+        "cond": {"lines": ["age := {v};", "if age >= 18 then", "  writeln('Adult')", "else",
+                           "  writeln('Minor');"], "then": 2, "else": 4},
+        "types": [("var n: integer = 42;", "integer"), ("var x: real = 3.14;", "real"),
+                  ("var c: char = 'A';", "char"), ("var ok: boolean = true;", "boolean")],
+    },
+    "c": {
+        "loop": _clike_loop("printf(\"%d\\n\", i);"),
+        "fn": _clike_fn("int add(int a, int b) {", "printf(\"%d\", add({a}, {b}));"),
+        "cond": _clike_cond("puts(\"Adult\");", "puts(\"Minor\");"),
+        "types": _clike_types("int", "double", "char", "bool"),
+    },
+    "cpp": {
+        "loop": _clike_loop("std::cout << i << \"\\n\";"),
+        "fn": _clike_fn("int add(int a, int b) {", "std::cout << add({a}, {b});"),
+        "cond": _clike_cond("std::cout << \"Adult\";", "std::cout << \"Minor\";"),
+        "types": _clike_types("int", "double", "char", "bool"),
+    },
+    "java": {
+        "loop": _clike_loop("System.out.println(i);"),
+        "fn": _clike_fn("static int add(int a, int b) {", "System.out.println(add({a}, {b}));"),
+        "cond": _clike_cond("System.out.println(\"Adult\");", "System.out.println(\"Minor\");"),
+        "types": _clike_types("int", "double", "char", "boolean"),
+    },
+    "csharp": {
+        "loop": _clike_loop("Console.WriteLine(i);"),
+        "fn": _clike_fn("static int add(int a, int b) {", "Console.WriteLine(add({a}, {b}));"),
+        "cond": _clike_cond("Console.WriteLine(\"Adult\");", "Console.WriteLine(\"Minor\");"),
+        "types": _clike_types("int", "double", "char", "bool"),
+    },
+    "rust": {
+        "loop": {"lines": ["for i in 0..{N} {", "    println!(\"{}\", i);", "}"], "header": 0, "body": 1},
+        "fn": {"lines": ["fn add(a: i32, b: i32) -> i32 {", "    a + b", "}",
+                         "println!(\"{}\", add({a}, {b}));"], "call": 3},
+        "cond": {"lines": ["let age = {v};", "if age >= 18 {", "    println!(\"Adult\");", "} else {",
+                           "    println!(\"Minor\");", "}"], "then": 2, "else": 4},
+        "types": [("let n: i32 = 42;", "i32"), ("let x: f64 = 3.14;", "f64"),
+                  ("let c: char = 'A';", "char"), ("let ok: bool = true;", "bool")],
+    },
+    "go": {
+        "loop": {"lines": ["for i := 0; i < {N}; i++ {", "  fmt.Println(i)", "}"], "header": 0, "body": 1},
+        "fn": {"lines": ["func add(a int, b int) int {", "  return a + b", "}",
+                         "fmt.Println(add({a}, {b}))"], "call": 3},
+        "cond": {"lines": ["age := {v}", "if age >= 18 {", "  fmt.Println(\"Adult\")", "} else {",
+                           "  fmt.Println(\"Minor\")", "}"], "then": 2, "else": 4},
+        "types": [("var n int = 42", "int"), ("var x float64 = 3.14", "float64"),
+                  ("var c rune = 'A'", "rune"), ("var ok bool = true", "bool")],
+    },
 }
