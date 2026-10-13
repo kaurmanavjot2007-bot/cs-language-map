@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Language Family Tree</title>
+<style>
+  :root {
+    --bg1: #1b1033;
+    --bg2: #0a0716;
+    --panel: rgba(255, 255, 255, 0.06);
+    --line: rgba(255, 255, 255, 0.14);
+    --text: #f3ecff;
+    --muted: #b9acd6;
+    --accent: #ff8fc7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+    background: radial-gradient(ellipse at 20% 0%, var(--bg1) 0%, var(--bg2) 70%) fixed;
+  }
+  header { padding: 28px 24px 8px; text-align: center; }
+  header h1 {
+    font-size: clamp(1.5rem, 3.4vw, 2.3rem);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-shadow: 0 0 18px rgba(255, 143, 199, 0.55);
+  }
+  header p { color: var(--muted); margin-top: 6px; font-size: 0.95rem; }
+  header nav { margin-top: 10px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .pill {
+    color: var(--text); text-decoration: none; font-size: 0.85rem;
+    border: 1px solid var(--line); border-radius: 999px; padding: 5px 14px;
+    background: var(--panel); cursor: pointer; font-family: inherit;
+  }
+  .pill:hover, .pill:focus-visible { border-color: var(--accent); box-shadow: 0 0 12px rgba(255, 143, 199, 0.45); outline: none; }
+
+  main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 18px;
+    padding: 14px 20px 40px;
+    max-width: 1500px;
+    margin: 0 auto;
+    align-items: start;
+  }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+
+  .map-wrap {
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.025);
+    overflow-x: auto;
+  }
+  svg#map { display: block; width: 100%; min-width: 760px; height: auto; }
+
+  .region { stroke-width: 1; }
+  .region-label {
+    font-size: 14px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+    text-anchor: middle; opacity: 0.9;
+  }
+  .edge { fill: none; stroke-width: 2.2; opacity: 0.55; transition: opacity .25s, stroke-width .25s; }
+  .edge.dim { opacity: 0.1; }
+  .edge.lit { opacity: 1; stroke-width: 3.6; }
+
+  .node { cursor: pointer; transition: opacity .25s; outline: none; }
+  .node circle { fill: #1a1230; stroke-width: 2.5; transition: stroke-width .25s; }
+  .node .name { fill: #fff; font-size: 13px; font-weight: 700; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+  .node .year { fill: var(--muted); font-size: 12px; text-anchor: middle; pointer-events: none; }
+  .node:hover circle, .node:focus-visible circle { stroke-width: 4; }
+  .node.dim { opacity: 0.22; }
+  .node.selected circle { stroke-width: 4.5; }
+
+  aside {
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: var(--panel);
+    padding: 20px;
+    position: sticky;
+    top: 14px;
+    backdrop-filter: blur(6px);
+  }
+  aside h2 { font-size: 1.6rem; }
+  .meta { color: var(--muted); font-size: 0.9rem; margin-top: 2px; }
+  .tagline { margin-top: 10px; line-height: 1.5; }
+  .hint { color: var(--muted); line-height: 1.6; }
+  h3 { font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 18px 0 8px; font-weight: 600; }
+  .path { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 0.9rem; }
+  .path .arrow { color: var(--muted); }
+  .path .step { padding: 2px 10px; border-radius: 999px; border: 1px solid; }
+
+  .bubbles { display: flex; gap: 10px; flex-wrap: wrap; }
+  .bubble {
+    width: 74px; height: 74px; border-radius: 50%;
+    background: #1a1230; color: var(--text); border: 2px solid; cursor: pointer;
+    font-size: 0.78rem; font-weight: 600; font-family: inherit;
+    transition: transform .2s, box-shadow .2s;
+  }
+  .bubble:hover, .bubble:focus-visible { transform: scale(1.08); outline: none; }
+  .bubble.on { transform: scale(1.08); }
+  .bubble-text { margin-top: 12px; line-height: 1.55; font-size: 0.95rem; min-height: 4.5em; }
+
+  pre {
+    background: #120b24; border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px 14px; overflow-x: auto; font-size: 0.85rem; line-height: 1.5;
+    font-family: Consolas, Monaco, "Courier New", monospace; color: #ffe3f1;
+  }
+  .code-note { color: var(--muted); font-size: 0.8rem; margin-bottom: 6px; }
+  .clear { margin-top: 18px; }
+  footer { text-align: center; color: var(--muted); font-size: 0.8rem; padding: 0 0 30px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>The Family Tree of Programming Languages</h1>
+  <p>Click a language to see where it came from, how it thinks, and what its code looks like.</p>
+  <nav>
+    <a class="pill" href="notes.html">Notes &amp; next steps</a>
+  </nav>
+</header>
+
+<main>
+  <div class="map-wrap">
+    <svg id="map" role="group" aria-label="Family tree of programming languages">
+      <defs>
+        <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur stdDeviation="4" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="glowStrong" x="-80%" y="-80%" width="260%" height="260%">
+          <feGaussianBlur stdDeviation="9" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <g id="regions"></g>
+      <g id="edges"></g>
+      <g id="nodes"></g>
+    </svg>
+  </div>
+
+  <aside id="panel" aria-live="polite">
+    <h2>Pick a language</h2>
+    <p class="hint">Each glowing circle is a language. Lines go from a language to the one it grew out of. Click one and its whole ancestry lights up.</p>
+  </aside>
+</main>
+
+<footer>Prototype: first 10 languages. Influence links and a timeline are coming next.</footer>
+
+<script>
+const D = __DATA__;
+const NS = "http://www.w3.org/2000/svg";
+const R = 36;
+const svg = document.getElementById("map");
+svg.setAttribute("viewBox", "0 0 " + D.width + " " + D.height);
+
+const byId = {};
+D.nodes.forEach(n => { byId[n.id] = n; });
+
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+
+// Family regions
+const regionsG = document.getElementById("regions");
+D.regions.forEach(r => {
+  el("rect", {
+    class: "region", x: r.x, y: 60, width: r.w, height: D.height - 80, rx: 28,
+    fill: r.color, "fill-opacity": 0.07, stroke: r.color, "stroke-opacity": 0.3
+  }, regionsG);
+  const t = el("text", { class: "region-label", x: r.x + r.w / 2, y: 90, fill: r.color }, regionsG);
+  t.textContent = r.family;
+});
+
+// Edges
+const edgesG = document.getElementById("edges");
+const edgeEls = {};
+D.nodes.filter(n => n.parent).forEach(n => {
+  const p = byId[n.parent];
+  const y1 = p.y + R, y2 = n.y - R, mid = (y1 + y2) / 2;
+  edgeEls[n.id] = el("path", {
+    class: "edge",
+    d: "M" + p.x + "," + y1 + " C" + p.x + "," + mid + " " + n.x + "," + mid + " " + n.x + "," + y2,
+    stroke: n.color
+  }, edgesG);
+});
+
+// Nodes
+const nodesG = document.getElementById("nodes");
+const nodeEls = {};
+D.nodes.forEach(n => {
+  const g = el("g", { class: "node", tabindex: 0, role: "button", "aria-label": n.name + ", " + n.year }, nodesG);
+  el("circle", { cx: n.x, cy: n.y, r: R, stroke: n.color, filter: "url(#glow)" }, g);
+  el("text", { class: "name", x: n.x, y: n.y }, g).textContent = n.name;
+  el("text", { class: "year", x: n.x, y: n.y + R + 18 }, g).textContent = n.year;
+  g.addEventListener("click", ev => { ev.stopPropagation(); select(n.id); });
+  g.addEventListener("keydown", ev => {
+    if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); select(n.id); }
+  });
+  nodeEls[n.id] = g;
+});
+
+function ancestors(id) {
+  const list = [];
+  let cur = byId[id];
+  while (cur) { list.unshift(cur); cur = cur.parent ? byId[cur.parent] : null; }
+  return list;
+}
+
+function clearSelection() {
+  Object.values(nodeEls).forEach(g => g.classList.remove("dim", "selected"));
+  Object.values(edgeEls).forEach(e => e.classList.remove("dim", "lit"));
+  Object.keys(nodeEls).forEach(id => nodeEls[id].firstChild.setAttribute("filter", "url(#glow)"));
+  showHint();
+}
+
+function showHint() {
+  const panel = document.getElementById("panel");
+  panel.replaceChildren();
+  const h = document.createElement("h2"); h.textContent = "Pick a language"; panel.appendChild(h);
+  const p = document.createElement("p"); p.className = "hint";
+  p.textContent = "Each glowing circle is a language. Lines go from a language to the one it grew out of. Click one and its whole ancestry lights up.";
+  panel.appendChild(p);
+}
+
+function add(parent, tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  parent.appendChild(e);
+  return e;
+}
+
+function select(id) {
+  const chain = ancestors(id);
+  const inChain = new Set(chain.map(n => n.id));
+
+  Object.keys(nodeEls).forEach(nid => {
+    const g = nodeEls[nid];
+    g.classList.toggle("dim", !inChain.has(nid));
+    g.classList.toggle("selected", nid === id);
+    g.firstChild.setAttribute("filter", nid === id ? "url(#glowStrong)" : "url(#glow)");
+  });
+  Object.keys(edgeEls).forEach(nid => {
+    const lit = inChain.has(nid);
+    edgeEls[nid].classList.toggle("lit", lit);
+    edgeEls[nid].classList.toggle("dim", !lit);
+  });
+
+  const n = byId[id];
+  const panel = document.getElementById("panel");
+  panel.replaceChildren();
+  add(panel, "h2", "", n.name);
+  add(panel, "p", "meta", n.year + " · " + n.family + " family");
+  add(panel, "p", "tagline", n.tagline);
+
+  add(panel, "h3", "", "Family path");
+  const path = add(panel, "div", "path");
+  chain.forEach((c, i) => {
+    if (i) add(path, "span", "arrow", "→");
+    const s = add(path, "span", "step", c.name);
+    s.style.borderColor = c.color;
+    s.style.color = c.color;
+  });
+  if (chain.length === 1) add(panel, "p", "meta", "This language is a root: no other language on this map came before it.");
+
+  add(panel, "h3", "", "Concepts (click a bubble)");
+  const bubbles = add(panel, "div", "bubbles");
+  const text = add(panel, "p", "bubble-text");
+  const btns = [];
+  function pick(i) {
+    btns.forEach((b, j) => {
+      b.classList.toggle("on", i === j);
+      b.style.boxShadow = i === j ? "0 0 18px " + n.color : "0 0 8px " + n.color + "66";
+    });
+    text.textContent = n.concepts[i].text;
+  }
+  n.concepts.forEach((c, i) => {
+    const b = add(bubbles, "button", "bubble", c.label);
+    b.style.borderColor = n.color;
+    b.addEventListener("click", () => pick(i));
+    btns.push(b);
+  });
+  pick(0);
+
+  add(panel, "h3", "", "Same task, this language");
+  add(panel, "p", "code-note", "Print the numbers 0 to 4 (" + n.codeLang + ")");
+  add(panel, "pre", "", n.code);
+
+  const clear = add(panel, "button", "pill clear", "Show the whole tree");
+  clear.addEventListener("click", clearSelection);
+}
+
+svg.addEventListener("click", clearSelection);
+document.addEventListener("keydown", ev => { if (ev.key === "Escape") clearSelection(); });
+</script>
+</body>
+</html>
