@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Language Tree</title>
 <style>
   :root {
@@ -42,8 +42,8 @@
   .bubbles { opacity: 0; pointer-events: none; transition: opacity .35s; }
   .bubbles.show { opacity: 1; pointer-events: auto; }
   .bubble { cursor: pointer; }
-  .bubble circle { fill: var(--ink); stroke: var(--pink); stroke-width: 2; }
-  .bubble:hover circle { fill: #3a1a58; stroke-width: 3.5; }
+  .bubble .leaf { fill: var(--ink); stroke: var(--pink); stroke-width: 2; }
+  .bubble:hover .leaf { fill: #3a1a58; stroke-width: 3.5; }
   .bubble .glyph { fill: #fff; font-size: 11px; font-weight: 700; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
   .bubble .lab { fill: var(--pale); font-size: 8.5px; text-anchor: middle; pointer-events: none; opacity: .9; }
 
@@ -111,6 +111,18 @@
   .chips4 { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
   .val { border: 2px solid var(--pink); background: transparent; color: var(--text); border-radius: 14px; padding: 8px 20px; font-size: 1.15rem; font-family: Consolas, Monaco, monospace; cursor: pointer; }
   .val.on { background: var(--pink); color: var(--ink); font-weight: 700; box-shadow: 0 0 16px var(--pink); }
+
+  #notesLink {position:fixed;top:16px;right:18px;z-index:3;color:var(--pale);font-size:13px;text-decoration:none;}
+  #hint {position:fixed;bottom:18px;left:75px;right:75px;z-index:2;text-align:center;color:var(--muted);font-size:12px;pointer-events:none;}
+  .goal {color:var(--pale);margin:8px 0 12px;line-height:1.5;}
+  .explain {color:var(--muted);line-height:1.5;margin:12px 0;min-height:45px;}
+  .question {margin:12px 0;font-weight:600;}
+  .answer {background:#12081f;color:var(--text);border:1px solid var(--pink);padding:10px;border-radius:10px;font:inherit;width:100%;}
+  .feedback {margin:12px 0;padding:12px;border-radius:12px;background:rgba(255,143,199,.1);line-height:1.5;}
+  button:disabled {opacity:.4;cursor:default;}
+  :focus-visible {outline:2px solid var(--pale);outline-offset:5px;}
+  .node:focus .core {stroke-width:4;}
+  @media (prefers-reduced-motion:reduce) {*,*::before,*::after {animation:none!important;transition:none!important;}}
 </style>
 </head>
 <body>
@@ -141,6 +153,7 @@
   </g>
 </svg>
 
+<a id="notesLink" href="notes.html">Notes ↗</a><div id="hint">Tap a language to explore · scroll to zoom · drag to move</div>
 <div id="controls">
   <button class="cbtn" id="zin" aria-label="Zoom in">+</button>
   <button class="cbtn" id="zout" aria-label="Zoom out">−</button>
@@ -148,7 +161,7 @@
 </div>
 
 <div id="lesson" hidden>
-  <div id="card">
+  <div id="card" role="dialog" aria-modal="true" aria-label="Programming lesson">
     <button class="cbtn" id="close" aria-label="Close">✕</button>
     <div class="row" id="langPills"></div>
     <div class="row kinds" id="kindPills"></div>
@@ -158,7 +171,7 @@
 
 <script>
 (function () {
-const D = {"width": 1220, "height": 1500, "nodes": [{"id": "algol", "name": "ALGOL", "year": 1958, "parent": null, "depth": 0, "x": 520, "y": 190}, {"id": "pascal", "name": "Pascal", "year": 1970, "parent": "algol", "depth": 1, "x": 250, "y": 430}, {"id": "c", "name": "C", "year": 1972, "parent": "algol", "depth": 1, "x": 790, "y": 470}, {"id": "cpp", "name": "C++", "year": 1985, "parent": "c", "depth": 2, "x": 610, "y": 730}, {"id": "java", "name": "Java", "year": 1995, "parent": "cpp", "depth": 3, "x": 490, "y": 930}, {"id": "csharp", "name": "C#", "year": 2000, "parent": "java", "depth": 4, "x": 490, "y": 1030}, {"id": "go", "name": "Go", "year": 2009, "parent": "c", "depth": 2, "x": 970, "y": 1210}, {"id": "rust", "name": "Rust", "year": 2015, "parent": "cpp", "depth": 3, "x": 730, "y": 1330}], "years": [{"year": 1958, "y": 190}, {"year": 1970, "y": 430}, {"year": 1972, "y": 470}, {"year": 1985, "y": 730}, {"year": 1995, "y": 930}, {"year": 2000, "y": 1030}, {"year": 2009, "y": 1210}, {"year": 2015, "y": 1330}], "stem": {"x": 520, "y1": 0, "y2": 190}, "langs": [{"id": "algol", "name": "ALGOL"}, {"id": "pascal", "name": "Pascal"}, {"id": "c", "name": "C"}, {"id": "cpp", "name": "C++"}, {"id": "java", "name": "Java"}, {"id": "csharp", "name": "C#"}, {"id": "go", "name": "Go"}, {"id": "rust", "name": "Rust"}], "lessons": {"algol": {"loop": {"lines": ["FOR i FROM 0 TO {M} DO", "  print((i, newline))", "OD"], "header": 0, "body": 1}, "fn": {"lines": ["PROC add = (INT a, b) INT: a + b;", "print((add({a}, {b}), newline))"], "call": 1}, "cond": {"lines": ["INT age = {v};", "IF age >= 18", "THEN print((\"Adult\", newline))", "ELSE print((\"Minor\", newline))", "FI"], "then": 2, "else": 3}, "types": [["INT n = 42;", "INT"], ["REAL x = 3.14;", "REAL"], ["CHAR c = \"A\";", "CHAR"], ["BOOL ok = TRUE;", "BOOL"]]}, "c": {"loop": {"lines": ["for (int i = 0; i < {N}; i++) {", "  printf(\"%d\\n\", i);", "}"], "header": 0, "body": 1}, "fn": {"lines": ["int add(int a, int b) {", "  return a + b;", "}", "printf(\"%d\", add({a}, {b}));"], "call": 3}, "cond": {"lines": ["int age = {v};", "if (age >= 18) {", "  puts(\"Adult\");", "} else {", "  puts(\"Minor\");", "}"], "then": 2, "else": 4}, "types": [["int n = 42;", "int"], ["double x = 3.14;", "double"], ["char c = 'A';", "char"], ["bool ok = true;", "bool"]]}, "pascal": {"loop": {"lines": ["for i := 0 to {M} do", "  writeln(i);"], "header": 0, "body": 1}, "fn": {"lines": ["function add(a, b: integer): integer;", "begin", "  add := a + b;", "end;", "writeln(add({a}, {b}));"], "call": 4}, "cond": {"lines": ["age := {v};", "if age >= 18 then", "  writeln('Adult')", "else", "  writeln('Minor');"], "then": 2, "else": 4}, "types": [["var n: integer = 42;", "integer"], ["var x: real = 3.14;", "real"], ["var c: char = 'A';", "char"], ["var ok: boolean = true;", "boolean"]]}, "cpp": {"loop": {"lines": ["for (int i = 0; i < {N}; i++) {", "  std::cout << i << \"\\n\";", "}"], "header": 0, "body": 1}, "fn": {"lines": ["int add(int a, int b) {", "  return a + b;", "}", "std::cout << add({a}, {b});"], "call": 3}, "cond": {"lines": ["int age = {v};", "if (age >= 18) {", "  std::cout << \"Adult\";", "} else {", "  std::cout << \"Minor\";", "}"], "then": 2, "else": 4}, "types": [["int n = 42;", "int"], ["double x = 3.14;", "double"], ["char c = 'A';", "char"], ["bool ok = true;", "bool"]]}, "java": {"loop": {"lines": ["for (int i = 0; i < {N}; i++) {", "  System.out.println(i);", "}"], "header": 0, "body": 1}, "fn": {"lines": ["static int add(int a, int b) {", "  return a + b;", "}", "System.out.println(add({a}, {b}));"], "call": 3}, "cond": {"lines": ["int age = {v};", "if (age >= 18) {", "  System.out.println(\"Adult\");", "} else {", "  System.out.println(\"Minor\");", "}"], "then": 2, "else": 4}, "types": [["int n = 42;", "int"], ["double x = 3.14;", "double"], ["char c = 'A';", "char"], ["boolean ok = true;", "boolean"]]}, "csharp": {"loop": {"lines": ["for (int i = 0; i < {N}; i++) {", "  Console.WriteLine(i);", "}"], "header": 0, "body": 1}, "fn": {"lines": ["static int add(int a, int b) {", "  return a + b;", "}", "Console.WriteLine(add({a}, {b}));"], "call": 3}, "cond": {"lines": ["int age = {v};", "if (age >= 18) {", "  Console.WriteLine(\"Adult\");", "} else {", "  Console.WriteLine(\"Minor\");", "}"], "then": 2, "else": 4}, "types": [["int n = 42;", "int"], ["double x = 3.14;", "double"], ["char c = 'A';", "char"], ["bool ok = true;", "bool"]]}, "go": {"loop": {"lines": ["for i := 0; i < {N}; i++ {", "  fmt.Println(i)", "}"], "header": 0, "body": 1}, "fn": {"lines": ["func add(a int, b int) int {", "  return a + b", "}", "fmt.Println(add({a}, {b}))"], "call": 3}, "cond": {"lines": ["age := {v}", "if age >= 18 {", "  fmt.Println(\"Adult\")", "} else {", "  fmt.Println(\"Minor\")", "}"], "then": 2, "else": 4}, "types": [["var n int = 42", "int"], ["var x float64 = 3.14", "float64"], ["var c rune = 'A'", "rune"], ["var ok bool = true", "bool"]]}, "rust": {"loop": {"lines": ["for i in 0..{N} {", "    println!(\"{}\", i);", "}"], "header": 0, "body": 1}, "fn": {"lines": ["fn add(a: i32, b: i32) -> i32 {", "    a + b", "}", "println!(\"{}\", add({a}, {b}));"], "call": 3}, "cond": {"lines": ["let age = {v};", "if age >= 18 {", "    println!(\"Adult\");", "} else {", "    println!(\"Minor\");", "}"], "then": 2, "else": 4}, "types": [["let n: i32 = 42;", "i32"], ["let x: f64 = 3.14;", "f64"], ["let c: char = 'A';", "char"], ["let ok: bool = true;", "bool"]]}}};
+const D = {"width": 1350, "height": 740, "nodes": [{"id": "algol", "name": "ALGOL", "year": 1958, "parent": null, "depth": 0, "x": 562, "y": 80}, {"id": "pascal", "name": "Pascal", "year": 1970, "parent": "algol", "depth": 1, "x": 225, "y": 200}, {"id": "c", "name": "C", "year": 1972, "parent": "algol", "depth": 1, "x": 900, "y": 220}, {"id": "cpp", "name": "C++", "year": 1985, "parent": "c", "depth": 2, "x": 675, "y": 350}, {"id": "java", "name": "Java", "year": 1995, "parent": "cpp", "depth": 3, "x": 525, "y": 450}, {"id": "csharp", "name": "C#", "year": 2000, "parent": "java", "depth": 4, "x": 415, "y": 500}, {"id": "go", "name": "Go", "year": 2009, "parent": "c", "depth": 2, "x": 1125, "y": 590}, {"id": "rust", "name": "Rust", "year": 2015, "parent": "cpp", "depth": 3, "x": 825, "y": 650}], "years": [{"year": 1958, "y": 80}, {"year": 1970, "y": 200}, {"year": 1972, "y": 220}, {"year": 1985, "y": 350}, {"year": 1995, "y": 450}, {"year": 2000, "y": 500}, {"year": 2009, "y": 590}, {"year": 2015, "y": 650}], "stem": {"x": 562, "y1": 0, "y2": 80}, "langs": [{"id": "algol", "name": "ALGOL"}, {"id": "pascal", "name": "Pascal"}, {"id": "c", "name": "C"}, {"id": "cpp", "name": "C++"}, {"id": "java", "name": "Java"}, {"id": "csharp", "name": "C#"}, {"id": "go", "name": "Go"}, {"id": "rust", "name": "Rust"}], "lessons": {"algol": {"loop": {"lines": ["FOR i FROM 0 TO {M} DO", "  print((i, newline))", "OD"], "header": 0, "body": 1}, "fn": {"lines": ["PROC add = (INT a, b) INT: a + b;", "print((add({a}, {b}), newline))"], "call": 1}, "cond": {"lines": ["INT age = {v};", "IF age >= 18", "THEN print((\"Adult\", newline))", "ELSE print((\"Minor\", newline))", "FI"], "then": 2, "else": 3}, "types": [["INT n = 42;", "INT"], ["REAL x = 3.14;", "REAL"], ["CHAR c = \"A\";", "CHAR"], ["BOOL ok = TRUE;", "BOOL"]]}, "pascal": {"loop": {"lines": ["for i := 0 to {M} do", "  writeln(i);"], "header": 0, "body": 1}, "fn": {"lines": ["function add(a, b: integer): integer;", "begin", "  add := a + b;", "end;", "writeln(add({a}, {b}));"], "call": 4}, "cond": {"lines": ["age := {v};", "if age >= 18 then", "  writeln('Adult')", "else", "  writeln('Minor');"], "then": 2, "else": 4}, "types": [["var n: integer = 42;", "integer"], ["var x: real = 3.14;", "real"], ["var c: char = 'A';", "char"], ["var ok: boolean = true;", "boolean"]]}, "c": {"loop": {"lines": ["for (int i = 0; i < {N}; i++) {", "  printf(\"%d\\n\", i);", "}"], "header": 0, "body": 1}, "fn": {"lines": ["int add(int a, int b) {", "  return a + b;", "}", "printf(\"%d\", add({a}, {b}));"], "call": 3}, "cond": {"lines": ["int age = {v};", "if (age >= 18) {", "  puts(\"Adult\");", "} else {", "  puts(\"Minor\");", "}"], "then": 2, "else": 4}, "types": [["int n = 42;", "int"], ["double x = 3.14;", "double"], ["char c = 'A';", "char"], ["bool ok = true;", "bool"]]}, "cpp": {"loop": {"lines": ["for (int i = 0; i < {N}; i++) {", "  std::cout << i << \"\\n\";", "}"], "header": 0, "body": 1}, "fn": {"lines": ["int add(int a, int b) {", "  return a + b;", "}", "std::cout << add({a}, {b});"], "call": 3}, "cond": {"lines": ["int age = {v};", "if (age >= 18) {", "  std::cout << \"Adult\";", "} else {", "  std::cout << \"Minor\";", "}"], "then": 2, "else": 4}, "types": [["int n = 42;", "int"], ["double x = 3.14;", "double"], ["char c = 'A';", "char"], ["bool ok = true;", "bool"]]}, "java": {"loop": {"lines": ["for (int i = 0; i < {N}; i++) {", "  System.out.println(i);", "}"], "header": 0, "body": 1}, "fn": {"lines": ["static int add(int a, int b) {", "  return a + b;", "}", "System.out.println(add({a}, {b}));"], "call": 3}, "cond": {"lines": ["int age = {v};", "if (age >= 18) {", "  System.out.println(\"Adult\");", "} else {", "  System.out.println(\"Minor\");", "}"], "then": 2, "else": 4}, "types": [["int n = 42;", "int"], ["double x = 3.14;", "double"], ["char c = 'A';", "char"], ["boolean ok = true;", "boolean"]]}, "csharp": {"loop": {"lines": ["for (int i = 0; i < {N}; i++) {", "  Console.WriteLine(i);", "}"], "header": 0, "body": 1}, "fn": {"lines": ["static int add(int a, int b) {", "  return a + b;", "}", "Console.WriteLine(add({a}, {b}));"], "call": 3}, "cond": {"lines": ["int age = {v};", "if (age >= 18) {", "  Console.WriteLine(\"Adult\");", "} else {", "  Console.WriteLine(\"Minor\");", "}"], "then": 2, "else": 4}, "types": [["int n = 42;", "int"], ["double x = 3.14;", "double"], ["char c = 'A';", "char"], ["bool ok = true;", "bool"]]}, "go": {"loop": {"lines": ["for i := 0; i < {N}; i++ {", "  fmt.Println(i)", "}"], "header": 0, "body": 1}, "fn": {"lines": ["func add(a int, b int) int {", "  return a + b", "}", "fmt.Println(add({a}, {b}))"], "call": 3}, "cond": {"lines": ["age := {v}", "if age >= 18 {", "  fmt.Println(\"Adult\")", "} else {", "  fmt.Println(\"Minor\")", "}"], "then": 2, "else": 4}, "types": [["var n int = 42", "int"], ["var x float64 = 3.14", "float64"], ["var c rune = 'A'", "rune"], ["var ok bool = true", "bool"]]}, "rust": {"loop": {"lines": ["for i in 0..{N} {", "    println!(\"{}\", i);", "}"], "header": 0, "body": 1}, "fn": {"lines": ["fn add(a: i32, b: i32) -> i32 {", "    a + b", "}", "println!(\"{}\", add({a}, {b}));"], "call": 3}, "cond": {"lines": ["let age = {v};", "if age >= 18 {", "    println!(\"Adult\");", "} else {", "    println!(\"Minor\");", "}"], "then": 2, "else": 4}, "types": [["let n: i32 = 42;", "i32"], ["let x: f64 = 3.14;", "f64"], ["let c: char = 'A';", "char"], ["let ok: bool = true;", "bool"]]}}};
 const NS = "http://www.w3.org/2000/svg";
 const TL = 64;                 // width reserved for the timeline labels
 const PINK = "#ff8fc7", PALE = "#ffd6ec";
@@ -195,7 +208,7 @@ const byId = {};
 D.nodes.forEach(n => { byId[n.id] = n; });
 
 /* ================= draw the tree ================= */
-const R = 34;
+const R = 38;
 const rand = rng(11);
 
 // trunk stem hanging from the top
@@ -209,7 +222,7 @@ D.nodes.filter(n => n.parent).forEach(n => {
   const dy = n.y - p.y;
   const c1y = p.y + dy * 0.55, c2y = n.y - dy * 0.45;
   const d = "M" + p.x + "," + p.y + " C" + p.x + "," + c1y + " " + n.x + "," + c2y + " " + n.x + "," + n.y;
-  const w = Math.max(5, 17 - 3.4 * (n.depth - 1));
+  const w = Math.max(4, 25 - 5 * (n.depth - 1));
   const layers = [[w * 2.8, 0.10], [w * 1.8, 0.18], [w, 0.85], [w * 0.3, 0.75]];
   layers.forEach((l, i) => {
     S("path", { d: d, fill: "none", stroke: i === 3 ? PALE : PINK, "stroke-width": l[0], "stroke-opacity": l[1], "stroke-linecap": "round" }, $("branches"));
@@ -220,7 +233,7 @@ D.nodes.filter(n => n.parent).forEach(n => {
     const side = rand() < 0.5 ? -1 : 1;
     const off = side * (w * 0.9 + 6 + rand() * 14);
     const r = 2.2 + rand() * 2.6;
-    const c = S("circle", { cx: bx + off, cy: by + (rand() - 0.5) * 16, r: r, fill: rand() < 0.5 ? PALE : PINK, class: "twinkle" }, blossoms);
+    const c = S("path", { d: "M0 0 Q-5 -18 -22 -17 Q-23 -2 0 0Z", transform: "translate(" + (bx + off) + "," + by + ") rotate(" + (side * 35) + ")", fill: PINK, "fill-opacity": .3, stroke: PALE, "stroke-opacity": .45 }, blossoms);
     c.style.setProperty("--d", (rand() * 3).toFixed(2) + "s");
   });
 });
@@ -236,9 +249,10 @@ const nodesG = $("nodes");
 const nodeEls = {};
 D.nodes.forEach(n => {
   const g = S("g", { class: "node", transform: "translate(" + n.x + "," + n.y + ")", "data-id": n.id, filter: "url(#glow)" }, nodesG);
-  for (let a = 0; a < 360; a += 72) {
-    S("ellipse", { class: "petal", cx: 0, cy: -38, rx: 17, ry: 24, transform: "rotate(" + a + ")" }, g);
-  }
+  g.setAttribute("tabindex", "0");
+  g.setAttribute("role", "button");
+  g.setAttribute("aria-label", n.name + ", " + n.year + ". Explore lessons");
+  S("circle", {r: 47, fill: "none", stroke: PINK, "stroke-opacity": .2}, g);
   S("circle", { class: "core", r: R }, g);
   S("text", { class: "name" }, g).textContent = n.name;
   nodeEls[n.id] = g;
@@ -246,14 +260,16 @@ D.nodes.forEach(n => {
 
 // lesson bubbles that appear when you zoom into a language
 const KINDS = [["types", "int", "types"], ["cond", "if", "if / else"], ["loop", "for", "loops"], ["fn", "ƒ", "functions"]];
-const ANGLES = [145, 108, 72, 35];
+const ANGLES = [155, 110, 70, 25];
 const bubbleGroups = {};
 D.nodes.forEach(n => {
   const g = S("g", { class: "bubbles", transform: "translate(" + n.x + "," + n.y + ")" }, $("bubbleLayer"));
   KINDS.forEach((k, i) => {
     const a = ANGLES[i] * Math.PI / 180;
-    const b = S("g", { class: "bubble", transform: "translate(" + (Math.cos(a) * 102).toFixed(1) + "," + (Math.sin(a) * 102 + 6).toFixed(1) + ")", "data-node": n.id, "data-kind": k[0], filter: "url(#glow)" }, g);
-    S("circle", { r: 21 }, b);
+    const b = S("g", { class: "bubble", transform: "translate(" + (Math.cos(a) * 124).toFixed(1) + "," + (Math.sin(a) * 124 + 6).toFixed(1) + ")", "data-node": n.id, "data-kind": k[0], filter: "url(#glow)" }, g);
+    b.setAttribute("role", "button");
+    b.setAttribute("aria-label", n.name + ": " + k[2]);
+    S("path", {d: "M -32 0 Q -22 -32 12 -23 Q 35 -17 32 0 Q 22 32 -12 23 Q -35 17 -32 0 Z", class: "leaf"}, b);
     S("text", { class: "glyph" }, b).textContent = k[1];
     S("text", { class: "lab", y: 35 }, b).textContent = k[2];
   });
@@ -272,7 +288,7 @@ const ticks = D.years.map(yy => {
 
 /* ================= pan and zoom ================= */
 let k = 1, tx = 0, ty = 0, interacted = false, anim = 0;
-const KMIN = 0.2, KMAX = 4;
+const KMIN = 0.05, KMAX = 4;
 
 function apply() {
   world.setAttribute("transform", "translate(" + tx + "," + ty + ") scale(" + k + ")");
@@ -286,7 +302,7 @@ function apply() {
 }
 function center() { return { x: TL + (innerWidth - TL) / 2, y: innerHeight / 2 }; }
 function fit() {
-  const pad = 30;
+  const pad = 16;
   const kk = Math.min((innerWidth - TL - pad * 2) / D.width, (innerHeight - pad * 2) / D.height);
   k = clamp(kk, KMIN, KMAX);
   tx = TL + (innerWidth - TL - D.width * k) / 2;
@@ -312,12 +328,12 @@ function animateTo(tk, ttx, tty, ms) {
   })(t0);
 }
 function focusNode(n) {
-  const c = center(), tk = 2.4;
+  const c = center(), tk = Math.min(2.4, (innerWidth - TL - 24) / 330, (innerHeight - 60) / 260);
   animateTo(tk, c.x - n.x * tk, c.y - n.y * tk, 550);
 }
 function updateBubbles() {
   let best = null, bd = 1e9;
-  if (k >= 1.4) {
+  if (k >= Math.min(1.4, (innerWidth - TL - 24) / 350)) {
     const c = center();
     D.nodes.forEach(n => {
       const d = Math.hypot(tx + n.x * k - c.x, ty + n.y * k - c.y);
@@ -325,7 +341,11 @@ function updateBubbles() {
     });
     if (bd > Math.min(innerWidth, innerHeight) * 0.5) best = null;
   }
-  D.nodes.forEach(n => bubbleGroups[n.id].classList.toggle("show", !!best && best.id === n.id));
+  D.nodes.forEach(n => {
+    const show = !!best && best.id === n.id;
+    bubbleGroups[n.id].classList.toggle("show", show);
+    bubbleGroups[n.id].querySelectorAll(".bubble").forEach(b => b.setAttribute("tabindex", show ? "0" : "-1"));
+  });
 }
 
 stage.addEventListener("wheel", e => {
@@ -360,7 +380,7 @@ stage.addEventListener("pointermove", e => {
     p.x = e.clientX; p.y = e.clientY;
     const nd = Math.hypot(p.x - other.x, p.y - other.y);
     const mx = (p.x + other.x) / 2, my = (p.y + other.y) / 2;
-    if (pd > 0) zoomAt(mx, my, nd / pd);
+    if (pd > 0) zoomAt(pmx, pmy, nd / pd);
     tx += mx - pmx; ty += my - pmy;
     apply();
   }
@@ -381,8 +401,11 @@ function tap(target) {
   if (nd) focusNode(byId[nd.getAttribute("data-id")]);
 }
 
-$("zin").onclick = () => { const c = center(); interacted = true; zoomAt(c.x, c.y, 1.4); apply(); };
-$("zout").onclick = () => { const c = center(); interacted = true; zoomAt(c.x, c.y, 1 / 1.4); apply(); };
+stage.addEventListener("keydown", e => {
+  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tap(e.target); }
+});
+$("zin").onclick = () => { anim++; const c = center(); interacted = true; zoomAt(c.x, c.y, 1.4); apply(); };
+$("zout").onclick = () => { anim++; const c = center(); interacted = true; zoomAt(c.x, c.y, 1 / 1.4); apply(); };
 $("zfit").onclick = () => { interacted = false; anim++; fit(); };
 addEventListener("resize", () => { if (!interacted) fit(); else apply(); });
 
@@ -416,21 +439,33 @@ function openLesson(lang, kind) {
   cur = { lang: lang, kind: kind };
   lessonEl.hidden = false;
   renderLesson();
+  $("close").focus();
 }
-function closeLesson() { stopAuto(); lessonEl.hidden = true; }
+function closeLesson() { stopAuto(); lessonEl.hidden = true; if(cur.lang) nodeEls[cur.lang].focus(); }
 $("close").onclick = closeLesson;
 lessonEl.addEventListener("click", e => { if (e.target === lessonEl) closeLesson(); });
-addEventListener("keydown", e => { if (e.key === "Escape") closeLesson(); });
+addEventListener("keydown", e => {
+  if(lessonEl.hidden)return;
+  if(e.key==="Escape")closeLesson();
+  if(e.key==="Tab"){
+    const items=[...$("card").querySelectorAll("button:not(:disabled), input")];
+    const first=items[0],last=items[items.length-1];
+    if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+    else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+  }
+});
 
 function renderLesson() {
   stopAuto();
   const lp = $("langPills"), kp = $("kindPills");
   lp.replaceChildren(); kp.replaceChildren(); lbody.replaceChildren();
-  D.langs.forEach(l => {
-    const b = H("button", "chip" + (l.id === cur.lang ? " on" : ""), l.name);
-    b.onclick = () => { cur.lang = l.id; renderLesson(); };
-    lp.appendChild(b);
-  });
+  lp.appendChild(H("h2", "", byId[cur.lang].name));
+  lbody.appendChild(H("p", "goal", {
+    types: "A type tells you what kind of value a variable stores.",
+    cond: "An if/else checks a condition and runs one of two branches.",
+    loop: "A loop repeats an instruction. Watch the counter change each time.",
+    fn: "A function is a reusable piece of code. This one takes two inputs and returns their sum."
+  }[cur.kind]));
   KINDS.forEach(kk => {
     const b = H("button", "chip" + (kk[0] === cur.kind ? " on" : ""), kk[2]);
     b.onclick = () => { cur.kind = kk[0]; renderLesson(); };
@@ -443,115 +478,101 @@ function renderLesson() {
   else renderTypes(L.types);
 }
 
-function renderLoop(spec) {
-  let N = 4, s = -1;
-  const cb = codeBlock(spec.lines.length);
-  const stat = H("div", "stat");
-  const iBadge = H("span", "badge", "i");
-  const outBox = H("div", "stat");
-  const total = () => 2 * N;
-  function paintCode() { spec.lines.forEach((t, i) => setLine(cb.els[i], fill(t, { N: N, M: N - 1 }))); }
-  function paint() {
-    cb.els.forEach(e => e.classList.remove("hot"));
-    let iv = "i", outs = 0;
-    if (s >= 0 && s < total()) {
-      const kk = s >> 1;
-      if (s % 2 === 0) { cb.els[spec.header].classList.add("hot"); outs = kk; }
-      else { cb.els[spec.body].classList.add("hot"); outs = kk + 1; }
-      iv = "i = " + kk;
-    } else if (s >= total()) { iv = "done ✓"; outs = N; }
-    iBadge.textContent = iv; pop(iBadge);
-    outBox.replaceChildren();
-    for (let j = 0; j < outs; j++) {
-      const o = H("span", "badge out", String(j));
-      outBox.appendChild(o);
-      if (j === outs - 1 && s % 2 === 1) pop(o);
-    }
+function prediction(question, check, reveal) {
+  const box = H("div");
+  const label = H("label", "question", question);
+  const input = H("input", "answer"); input.type = "text";
+  input.id = "prediction"; label.htmlFor = input.id;
+  const button = H("button", "big", "Check & see");
+  const feedback = H("p", "feedback", "Make a prediction, then see what the code does.");
+  feedback.setAttribute("aria-live", "polite");
+  function submit() {
+    if (!input.value.trim()) { feedback.textContent = "Enter a prediction first."; return; }
+    const r = check(input.value.trim());
+    feedback.textContent = (r.correct ? "You got it! " : "Let's trace it. ") + r.text;
+    reveal();
   }
-  function step() { if (s >= total()) s = -1; s++; paint(); if (s >= total()) stopAuto(); }
-  function reset() { stopAuto(); s = -1; paint(); }
-  const nStep = stepper(1, 6, N, v => { N = v; paintCode(); reset(); });
-  stat.append(iBadge);
-  const btns = H("div", "controls");
-  const bStep = H("button", "big", "Step ▶"), bAuto = H("button", "big ghost", "Auto"), bReset = H("button", "big ghost", "↺");
-  bStep.onclick = () => { stopAuto(); step(); };
-  bAuto.onclick = () => { if (timer) { stopAuto(); return; } if (s >= total()) s = -1; step(); timer = setInterval(step, 700); };
-  bReset.onclick = reset;
-  btns.append(nStep.el, bStep, bAuto, bReset);
-  lbody.append(cb.pre, stat, outBox, btns);
-  paintCode(); paint();
+  button.onclick = submit;
+  input.onkeydown = e => { if (e.key === "Enter") submit(); };
+  box.append(label, input, H("div", "controls"), feedback);
+  box.children[2].append(button);
+  return {el: box, reset() {input.value="";feedback.textContent="Inputs changed. Make a new prediction.";}};
+}
+
+function renderLoop(spec) {
+  let N=4, s=-1, unlocked=false;
+  const cb=codeBlock(spec.lines.length), stat=H("div","stat"), outputs=H("div","stat");
+  const counter=H("span","badge","i = ?"), explanation=H("p","explain");
+  const next=H("button","big","Step ▶"), auto=H("button","big ghost","Auto"), reset=H("button","big ghost","Reset");
+  const pred=prediction("What numbers will this loop print, in order?", value => {
+    const expected=Array.from({length:N},(_,i)=>String(i));
+    return {correct:value.split(/[\s,]+/).join(" ")===expected.join(" "),
+      text:"Output: " + expected.join(", ") + ". It starts at 0 and stops before " + N + ". Step through to see why."};
+  },()=>{unlocked=true;next.disabled=auto.disabled=false;});
+  function paint() {
+    spec.lines.forEach((t,i)=>setLine(cb.els[i],fill(t,{N,M:N-1})));
+    cb.els.forEach(e=>e.classList.remove("hot"));
+    let count=0;
+    if(s<0){counter.textContent="i = ?";explanation.textContent="Predict the output first. Then follow each highlighted line.";}
+    else if(s<2*N){const i=Math.floor(s/2);counter.textContent="i = "+i;count=i+(s%2);
+      cb.els[s%2 ? spec.body : spec.header].classList.add("hot");
+      explanation.textContent=s%2 ? "Print the current value of i: "+i+"." :
+        "Counter i is "+i+". It is in the loop's range, so run the body.";
+    } else {count=N;counter.textContent="finished";explanation.textContent="The next counter value would be "+N+", outside the range. The loop stops.";}
+    outputs.replaceChildren();for(let i=0;i<count;i++)outputs.append(H("span","badge out",String(i)));
+    next.disabled=auto.disabled=!unlocked || s>=2*N;
+  }
+  function step(){if(s>=2*N)return;s++;paint();if(s>=2*N){stopAuto();auto.textContent="Auto";}}
+  next.onclick=()=>{stopAuto();auto.textContent="Auto";step();};
+  auto.onclick=()=>{if(timer){stopAuto();auto.textContent="Auto";}else{auto.textContent="Pause";step();if(s<2*N)timer=setInterval(step,850);}};
+  reset.onclick=()=>{stopAuto();auto.textContent="Auto";s=-1;paint();};
+  const count=stepper(1,6,N,v=>{stopAuto();N=v;s=-1;unlocked=false;pred.reset();auto.textContent="Auto";paint();});
+  const controls=H("div","controls");controls.append(H("span","","Repeat count"),count.el,next,auto,reset);
+  stat.append(counter);lbody.append(cb.pre,pred.el,stat,outputs,explanation,controls);paint();
 }
 
 function renderFn(spec) {
-  let a = 3, b = 4;
-  const cb = codeBlock(spec.lines.length);
-  const result = H("div", "result");
-  function paint(animate) {
-    spec.lines.forEach((t, i) => setLine(cb.els[i], fill(t, { a: a, b: b })));
-    cb.els.forEach((e, i) => e.classList.toggle("hot", i === spec.call));
-    result.textContent = String(a + b);
-    if (animate) pop(result);
-  }
-  const sa = stepper(0, 9, a, v => { a = v; paint(true); });
-  const sb = stepper(0, 9, b, v => { b = v; paint(true); });
-  const flow = H("div", "flow");
-  flow.append(sa.el, sb.el, H("span", "arrow", "→"), H("div", "fbox", "ƒ"), H("span", "arrow", "→"), result);
-  lbody.append(flow, cb.pre);
-  paint(false);
+  let a=3,b=4;
+  const cb=codeBlock(spec.lines.length), result=H("span","badge out","Output: ?");
+  const explanation=H("p","explain", "a and b are input names. The return expression sends a + b back to the caller.");
+  const pred=prediction("What value will add return?", value=>({correct:/^\d+$/.test(value)&&Number(value)===a+b,
+    text:"add("+a+", "+b+") returns "+(a+b)+": "+a+" + "+b+" = "+(a+b)+"."}),()=>{
+      result.textContent="Output: "+(a+b);cb.els[spec.call].classList.add("hot");
+      explanation.textContent="The call passes "+a+" into a and "+b+" into b. The function returns their sum; the print instruction displays it.";
+    });
+  function paint(){spec.lines.forEach((t,i)=>setLine(cb.els[i],fill(t,{a,b})));cb.els.forEach(e=>e.classList.remove("hot"));result.textContent="Output: ?";pred.reset();}
+  const inputs=H("div","controls");inputs.append(H("span","","a"),stepper(0,9,a,v=>{a=v;paint();}).el,H("span","","b"),stepper(0,9,b,v=>{b=v;paint();}).el);
+  lbody.append(inputs,cb.pre,pred.el,result,explanation);paint();
 }
 
 function renderCond(spec) {
-  let v = 16;
-  const cb = codeBlock(spec.lines.length);
-  const out = H("span", "badge out");
-  const slider = H("input", "slider");
-  slider.type = "range"; slider.min = 10; slider.max = 25; slider.value = v;
-  const label = H("span", "sval");
-  function paint() {
-    const adult = v >= 18;
-    spec.lines.forEach((t, i) => setLine(cb.els[i], fill(t, { v: v })));
-    cb.els.forEach((e, i) => {
-      e.classList.toggle("hot", i === (adult ? spec.then : spec.else));
-      e.classList.toggle("dim", i === (adult ? spec.else : spec.then));
+  let age=16;
+  const cb=codeBlock(spec.lines.length), out=H("span","badge out","Output: ?");
+  const pred=prediction("Will this print Adult or Minor?",value=>({correct:value.toLowerCase()===(age>=18?"adult":"minor"),
+    text:"age >= 18 is "+(age>=18?"true":"false")+" for age "+age+". Only the "+(age>=18?"if":"else")+" branch runs."}),()=>{
+      const adult=age>=18;out.textContent="Output: "+(adult?"Adult":"Minor");
+      cb.els.forEach((e,i)=>{e.classList.toggle("hot",i===(adult?spec.then:spec.else));e.classList.toggle("dim",i===(adult?spec.else:spec.then));});
     });
-    label.textContent = String(v);
-    out.textContent = adult ? "Adult" : "Minor"; pop(out);
-  }
-  slider.oninput = () => { v = Number(slider.value); paint(); };
-  const row = H("div", "controls");
-  row.append(slider, label);
-  const stat = H("div", "stat"); stat.appendChild(out);
-  lbody.append(row, cb.pre, stat);
-  paint();
+  const slider=H("input","slider");slider.type="range";slider.min=10;slider.max=25;slider.value=age;slider.id="age";
+  const label=H("label","","Age: 16");label.htmlFor="age";
+  function paint(){spec.lines.forEach((t,i)=>setLine(cb.els[i],fill(t,{v:age})));cb.els.forEach(e=>e.classList.remove("hot","dim"));out.textContent="Output: ?";label.textContent="Age: "+age;pred.reset();}
+  slider.oninput=()=>{age=Number(slider.value);paint();};
+  const controls=H("div","controls");controls.append(label,slider);
+  lbody.append(controls,cb.pre,pred.el,out,H("p","explain","Try age 17, then 18. The >= sign means greater than or equal to, so 18 takes the Adult branch."));paint();
 }
 
 function renderTypes(decls) {
-  const values = ["42", "3.14", "A", "true"];
-  let sel = 0;
-  const chips = H("div", "chips4");
-  const cb = codeBlock(decls.length);
-  function paint() {
-    decls.forEach((d, i) => {
-      const line = cb.els[i];
-      line.replaceChildren();
-      const text = d[0], tok = d[1], at = text.indexOf(tok);
-      if (i === sel && at >= 0) {
-        line.append(document.createTextNode(text.slice(0, at)));
-        line.appendChild(H("span", "tok", tok));
-        line.append(document.createTextNode(text.slice(at + tok.length)));
-      } else { line.textContent = text; }
-      line.classList.toggle("hot", i === sel);
-      line.classList.toggle("dim", i !== sel);
-    });
-    [...chips.children].forEach((c, i) => c.classList.toggle("on", i === sel));
+  const values=["42","3.14","'A'","true"];
+  const descriptions=["Whole number: a count, like 42 students.","Decimal number: a measurement, like 3.14 meters.","Character: one character, like the letter A.","Boolean: true or false, like whether a light is on."];
+  let sel=0;const chips=H("div","chips4"), cb=codeBlock(decls.length), explanation=H("p","feedback");
+  function paint(){decls.forEach((d,i)=>{const line=cb.els[i];line.replaceChildren();const at=d[0].indexOf(d[1]);
+    if(i===sel&&at>=0){line.append(document.createTextNode(d[0].slice(0,at)),H("span","tok",d[1]),document.createTextNode(d[0].slice(at+d[1].length)));}else line.textContent=d[0];
+    line.classList.toggle("hot",i===sel);line.classList.toggle("dim",i!==sel);
+  });[...chips.children].forEach((c,i)=>{c.classList.toggle("on",i===sel);c.setAttribute("aria-pressed",i===sel);});
+    explanation.textContent=descriptions[sel]+" In "+byId[cur.lang].name+", this example uses "+decls[sel][1]+". The variable name labels the stored value.";
   }
-  values.forEach((val, i) => {
-    const c = H("button", "val", val);
-    c.onclick = () => { sel = i; paint(); };
-    chips.appendChild(c);
-  });
-  lbody.append(chips, cb.pre);
-  paint();
+  values.forEach((v,i)=>{const b=H("button","val",v);b.onclick=()=>{sel=i;paint();};chips.append(b);});
+  lbody.append(H("p","explain","Tap a value to see its type and what it can store."),chips,cb.pre,explanation);paint();
 }
 
 fit();
